@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CssBaseline, ThemeProvider } from '@mui/material'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter } from 'react-router'
 import '@fontsource/roboto/latin-ext-400.css'
 import '@fontsource/roboto/latin-ext-500.css'
 import '@fontsource/roboto/latin-ext-700.css'
@@ -13,6 +14,6 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 15
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><App /></ThemeProvider></QueryClientProvider>
+    <BrowserRouter><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><App /></ThemeProvider></QueryClientProvider></BrowserRouter>
   </StrictMode>,
 )

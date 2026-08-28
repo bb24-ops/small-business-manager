@@ -4,7 +4,7 @@ Početna struktura web aplikacije za upravljanje resursima i obavezama malih pre
 
 ## Tehnologije
 
-- Frontend: React, TypeScript i Vite
+- Frontend: React, TypeScript, Vite i React Router
 - Backend: NestJS i TypeScript
 - Baza: MySQL 8.4 LTS kroz Docker Compose
 - ORM: Prisma
@@ -78,9 +78,20 @@ npm.cmd run build
 - validacija ulaznih podataka i obrada konflikata;
 - pretraga i filtriranje resursa prema statusu i kategoriji;
 - kontrolna tabla sa osnovnim statistikama;
+- zasebne rute `/dashboard` i `/resources`, uz 404 stranicu;
+- responzivna desktop i mobilna navigacija;
+- dashboard statistika po statusu i kategoriji;
+- prikaz poslednje ažuriranih resursa;
 - forma za dodavanje kategorije;
 - dodavanje, izmena i brisanje resursa kroz React interfejs;
 - Swagger/OpenAPI dokumentacija;
 - unit i end-to-end testovi.
 
 Autentifikacija, korisnici, zadaci, rezervacije i ostali poslovni moduli još nisu implementirani.
+
+## Glavne adrese
+
+- Kontrolna tabla: `http://localhost:5174/dashboard`
+- Resursi: `http://localhost:5174/resources`
+- Dashboard API: `http://localhost:3001/api/dashboard/stats`
+- Swagger: `http://localhost:3001/api/docs`

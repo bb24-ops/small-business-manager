@@ -1,4 +1,4 @@
-import type { Resource, ResourceCategory, ResourcePayload, ResourceStatus } from './types'
+import type { DashboardStats, Resource, ResourceCategory, ResourcePayload, ResourceStatus } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 export class ApiError extends Error {
@@ -19,6 +19,9 @@ async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => apiRequest<{ status: string; timestamp: string }>('/health'),
+  dashboard: {
+    stats: () => apiRequest<DashboardStats>('/dashboard/stats'),
+  },
   categories: {
     list: () => apiRequest<ResourceCategory[]>('/resource-categories'),
     create: (payload: { name: string; description?: string }) => apiRequest<ResourceCategory>('/resource-categories', { method: 'POST', body: JSON.stringify(payload) }),

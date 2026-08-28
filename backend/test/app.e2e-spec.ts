@@ -45,6 +45,18 @@ describe('AppController (e2e)', () => {
       .expect(400);
   });
 
+  it('returns dashboard statistics', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/dashboard/stats')
+      .expect(200);
+
+    expect(response.body.totalResources).toBeTypeOf('number');
+    expect(response.body.totalCategories).toBeTypeOf('number');
+    expect(response.body.byStatus.AVAILABLE).toBeTypeOf('number');
+    expect(response.body.byCategory).toBeInstanceOf(Array);
+    expect(response.body.recentResources).toBeInstanceOf(Array);
+  });
+
   it('creates, filters, updates and deletes a resource', async () => {
     const categoryResponse = await request(app.getHttpServer())
       .post('/api/resource-categories')
