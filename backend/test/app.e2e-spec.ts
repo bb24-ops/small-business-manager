@@ -1,19 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
+import { PrismaService } from './../src/prisma/prisma.service.js';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
+  let prisma: PrismaService;
+  const testPrefix = `e2e-${Date.now()}`;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+    prisma = app.get(PrismaService);
     await app.init();
   });
 
@@ -27,7 +38,62 @@ describe('AppController (e2e)', () => {
       });
   });
 
-  afterEach(async () => {
+  it('validates resource category input', () => {
+    return request(app.getHttpServer())
+      .post('/api/resource-categories')
+      .send({ name: 'A' })
+      .expect(400);
+  });
+
+  it('creates, filters, updates and deletes a resource', async () => {
+    const categoryResponse = await request(app.getHttpServer())
+      .post('/api/resource-categories')
+      .send({ name: `${testPrefix}-Vozila` })
+      .expect(201);
+
+    const categoryId = categoryResponse.body.id as string;
+    const resourceResponse = await request(app.getHttpServer())
+      .post('/api/resources')
+      .send({
+        name: 'Test vozilo',
+        code: `${testPrefix}-001`,
+        categoryId,
+        location: 'Test garaža',
+      })
+      .expect(201);
+
+    const resourceId = resourceResponse.body.id as string;
+
+    const listResponse = await request(app.getHttpServer())
+      .get('/api/resources')
+      .query({ search: testPrefix })
+      .expect(200);
+
+    expect(listResponse.body).toHaveLength(1);
+    expect(listResponse.body[0].category.id).toBe(categoryId);
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/resources/${resourceId}`)
+      .send({ status: 'MAINTENANCE' })
+      .expect(200);
+
+    expect(updateResponse.body.status).toBe('MAINTENANCE');
+
+    await request(app.getHttpServer())
+      .delete(`/api/resources/${resourceId}`)
+      .expect(204);
+    await request(app.getHttpServer())
+      .delete(`/api/resource-categories/${categoryId}`)
+      .expect(204);
+  });
+
+  afterAll(async () => {
+    await prisma.resource.deleteMany({
+      where: { code: { startsWith: testPrefix } },
+    });
+    await prisma.resourceCategory.deleteMany({
+      where: { name: { startsWith: testPrefix } },
+    });
     await app.close();
   });
 });

@@ -8,6 +8,7 @@ Početna struktura web aplikacije za upravljanje resursima i obavezama malih pre
 - Backend: NestJS i TypeScript
 - Baza: MySQL 8.4 LTS kroz Docker Compose
 - ORM: Prisma
+- UI i serverski podaci: Material UI i TanStack Query
 
 ## Preduslovi
 
@@ -29,17 +30,18 @@ Primena Prisma migracija i pokretanje backend-a:
 
 ```powershell
 cd backend
-npm run prisma:migrate -- --name init
-npm run start:dev
+npm.cmd run prisma:deploy
+npm.cmd run start:dev
 ```
 
 Backend je dostupan na `http://localhost:3001`, a health ruta na `http://localhost:3001/api/health`.
+Swagger dokumentacija dostupna je na `http://localhost:3001/api/docs`.
 
 Pokretanje frontend-a u drugom terminalu:
 
 ```powershell
 cd frontend
-npm run dev
+npm.cmd run dev
 ```
 
 Frontend je dostupan na `http://localhost:5174`.
@@ -57,14 +59,28 @@ docker compose down -v
 
 # Frontend provere
 cd frontend
-npm run lint
-npm run build
+npm.cmd run lint
+npm.cmd run build
 
 # Backend provere
 cd backend
-npm run lint
-npm test
-npm run build
+npm.cmd run lint
+npm.cmd test
+npm.cmd run test:e2e
+npm.cmd run build
 ```
 
-Poslovni moduli, autentifikacija, korisnici, zadaci i resursi još nisu implementirani.
+## Trenutno implementirano
+
+- provera dostupnosti backend-a;
+- Prisma modeli i migracija za kategorije i poslovne resurse;
+- CRUD REST API za kategorije i resurse;
+- validacija ulaznih podataka i obrada konflikata;
+- pretraga i filtriranje resursa prema statusu i kategoriji;
+- kontrolna tabla sa osnovnim statistikama;
+- forma za dodavanje kategorije;
+- dodavanje, izmena i brisanje resursa kroz React interfejs;
+- Swagger/OpenAPI dokumentacija;
+- unit i end-to-end testovi.
+
+Autentifikacija, korisnici, zadaci, rezervacije i ostali poslovni moduli još nisu implementirani.

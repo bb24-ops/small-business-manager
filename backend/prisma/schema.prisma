@@ -3,7 +3,40 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
+enum ResourceStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+model ResourceCategory {
+  id          String     @id @default(uuid()) @db.Char(36)
+  name        String     @unique @db.VarChar(100)
+  description String?    @db.Text
+  resources   Resource[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Resource {
+  id          String           @id @default(uuid()) @db.Char(36)
+  name        String           @db.VarChar(150)
+  code        String           @unique @db.VarChar(50)
+  description String?          @db.Text
+  location    String?          @db.VarChar(150)
+  status      ResourceStatus   @default(AVAILABLE)
+  categoryId  String           @db.Char(36)
+  category    ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([name])
+}
