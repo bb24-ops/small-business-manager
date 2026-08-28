@@ -55,6 +55,41 @@ describe('AppController (e2e)', () => {
     expect(response.body.byStatus.AVAILABLE).toBeTypeOf('number');
     expect(response.body.byCategory).toBeInstanceOf(Array);
     expect(response.body.recentResources).toBeInstanceOf(Array);
+    expect(response.body.totalTasks).toBeTypeOf('number');
+    expect(response.body.taskByStatus.TODO).toBeTypeOf('number');
+    expect(response.body.upcomingTasks).toBeInstanceOf(Array);
+  });
+
+  it('creates, filters, updates and deletes a task', async () => {
+    const taskResponse = await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} terenski zadatak`,
+        description: 'E2E provera zadatka',
+        startsAt: '2026-09-02T08:00:00.000Z',
+        dueAt: '2026-09-02T12:00:00.000Z',
+        priority: 'HIGH',
+      })
+      .expect(201);
+
+    const taskId = taskResponse.body.id as string;
+    const listResponse = await request(app.getHttpServer())
+      .get('/api/tasks')
+      .query({ search: testPrefix, priority: 'HIGH' })
+      .expect(200);
+    expect(listResponse.body).toHaveLength(1);
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/tasks/${taskId}`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200);
+    expect(updateResponse.body.status).toBe('IN_PROGRESS');
+
+    await request(app.getHttpServer())
+      .patch(`/api/tasks/${taskId}`)
+      .send({ dueAt: '2026-09-02T07:00:00.000Z' })
+      .expect(400);
+    await request(app.getHttpServer()).delete(`/api/tasks/${taskId}`).expect(204);
   });
 
   it('creates, filters, updates and deletes a resource', async () => {
@@ -100,6 +135,9 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.task.deleteMany({
+      where: { title: { startsWith: testPrefix } },
+    });
     await prisma.resource.deleteMany({
       where: { code: { startsWith: testPrefix } },
     });

@@ -1,4 +1,4 @@
-import type { DashboardStats, Resource, ResourceCategory, ResourcePayload, ResourceStatus } from './types'
+import type { DashboardStats, Resource, ResourceCategory, ResourcePayload, ResourceStatus, Task, TaskPayload, TaskPriority, TaskStatus } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 export class ApiError extends Error {
@@ -39,5 +39,18 @@ export const api = {
     create: (payload: ResourcePayload) => apiRequest<Resource>('/resources', { method: 'POST', body: JSON.stringify(payload) }),
     update: (id: string, payload: ResourcePayload) => apiRequest<Resource>(`/resources/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     remove: (id: string) => apiRequest<void>(`/resources/${id}`, { method: 'DELETE' }),
+  },
+  tasks: {
+    list: (filters: { search?: string; status?: TaskStatus | ''; priority?: TaskPriority | '' }) => {
+      const params = new URLSearchParams()
+      if (filters.search) params.set('search', filters.search)
+      if (filters.status) params.set('status', filters.status)
+      if (filters.priority) params.set('priority', filters.priority)
+      const query = params.toString()
+      return apiRequest<Task[]>(`/tasks${query ? `?${query}` : ''}`)
+    },
+    create: (payload: TaskPayload) => apiRequest<Task>('/tasks', { method: 'POST', body: JSON.stringify(payload) }),
+    update: (id: string, payload: Partial<TaskPayload>) => apiRequest<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    remove: (id: string) => apiRequest<void>(`/tasks/${id}`, { method: 'DELETE' }),
   },
 }

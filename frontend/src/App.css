@@ -7,7 +7,7 @@
 .nav-button { justify-content: flex-start !important; padding: 10px 14px !important; }
 .mobile-menu-button { display: none !important; margin-right: 8px !important; }
 .main-content { flex: 1; min-width: 0; padding: 36px 0 56px; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { padding: 20px; border: 1px solid #e2e7eb; }
 .stat-card h4 { margin-top: 8px; }
 .resources-panel { border: 1px solid #e2e7eb; overflow: hidden; }

@@ -6,6 +6,7 @@ import './App.css'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
       <Route index element={<Navigate to="/dashboard" replace />} />
       <Route path="dashboard" element={<DashboardPage />} />
       <Route path="resources" element={<ResourcesPage />} />
+      <Route path="tasks" element={<TasksPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Route>
   </Routes></Suspense>

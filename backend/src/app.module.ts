@@ -4,6 +4,7 @@ import { AppController } from './app.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResourceCategoriesModule } from './resource-categories/resource-categories.module.js';
 import { ResourcesModule } from './resources/resources.module.js';
+import { TasksModule } from './tasks/tasks.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 
 function validateEnvironment(config: Record<string, unknown>) {
@@ -26,6 +27,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     PrismaModule,
     ResourceCategoriesModule,
     ResourcesModule,
+    TasksModule,
     DashboardModule,
   ],
   controllers: [AppController],
