@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { throwPrismaConflict } from '../common/prisma-error.util.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { TaskQueryDto } from './dto/task-query.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
@@ -24,19 +25,25 @@ export class TasksService {
     };
     return this.prisma.task.findMany({
       where,
+      include: { employee: true },
       orderBy: [{ status: 'asc' }, { dueAt: 'asc' }],
     });
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id } });
+    const task = await this.prisma.task.findUnique({ where: { id }, include: { employee: true } });
     if (!task) throw new NotFoundException('Zadatak nije pronađen.');
     return task;
   }
 
-  create(dto: CreateTaskDto) {
+  async create(dto: CreateTaskDto) {
     this.validatePeriod(dto.startsAt, dto.dueAt);
-    return this.prisma.task.create({ data: dto });
+    await this.validateActiveEmployee(dto.employeeId);
+    try {
+      return await this.prisma.task.create({ data: dto, include: { employee: true } });
+    } catch (error) {
+      throwPrismaConflict(error, 'Izabrani zaposleni nije validan.');
+    }
   }
 
   async update(id: string, dto: UpdateTaskDto) {
@@ -45,7 +52,12 @@ export class TasksService {
       dto.startsAt ?? existing.startsAt.toISOString(),
       dto.dueAt ?? existing.dueAt.toISOString(),
     );
-    return this.prisma.task.update({ where: { id }, data: dto });
+    if (dto.employeeId) await this.validateActiveEmployee(dto.employeeId);
+    try {
+      return await this.prisma.task.update({ where: { id }, data: dto, include: { employee: true } });
+    } catch (error) {
+      throwPrismaConflict(error, 'Izabrani zaposleni nije validan.');
+    }
   }
 
   async remove(id: string) {
@@ -56,6 +68,14 @@ export class TasksService {
   private validatePeriod(startsAt: string, dueAt: string) {
     if (new Date(dueAt) <= new Date(startsAt)) {
       throw new BadRequestException('Rok mora biti nakon vremena početka zadatka.');
+    }
+  }
+
+  private async validateActiveEmployee(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee) throw new BadRequestException('Izabrani zaposleni ne postoji.');
+    if (employee.status !== 'ACTIVE') {
+      throw new BadRequestException('Zadatak se može dodeliti samo aktivnom zaposlenom.');
     }
   }
 }

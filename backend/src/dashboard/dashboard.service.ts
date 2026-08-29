@@ -16,6 +16,8 @@ export class DashboardService {
       totalTasks,
       taskStatusGroups,
       upcomingTasks,
+      totalEmployees,
+      activeEmployees,
     ] = await Promise.all([
       this.prisma.resource.count(),
       this.prisma.resourceCategory.count(),
@@ -42,7 +44,10 @@ export class DashboardService {
         where: { status: { not: TaskStatus.DONE } },
         take: 5,
         orderBy: { dueAt: 'asc' },
+        include: { employee: true },
       }),
+      this.prisma.employee.count(),
+      this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
     ]);
 
     const byStatus: Record<ResourceStatus, number> = {
@@ -78,6 +83,8 @@ export class DashboardService {
       totalTasks,
       taskByStatus,
       upcomingTasks,
+      totalEmployees,
+      activeEmployees,
     };
   }
 }

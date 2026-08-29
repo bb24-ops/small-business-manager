@@ -58,9 +58,22 @@ describe('AppController (e2e)', () => {
     expect(response.body.totalTasks).toBeTypeOf('number');
     expect(response.body.taskByStatus.TODO).toBeTypeOf('number');
     expect(response.body.upcomingTasks).toBeInstanceOf(Array);
+    expect(response.body.totalEmployees).toBeTypeOf('number');
+    expect(response.body.activeEmployees).toBeTypeOf('number');
   });
 
   it('creates, filters, updates and deletes a task', async () => {
+    const employeeResponse = await request(app.getHttpServer())
+      .post('/api/employees')
+      .send({
+        firstName: 'Test',
+        lastName: 'Zaposleni',
+        email: `${testPrefix}@example.com`,
+        position: 'Tehničar',
+      })
+      .expect(201);
+    const employeeId = employeeResponse.body.id as string;
+
     const taskResponse = await request(app.getHttpServer())
       .post('/api/tasks')
       .send({
@@ -69,6 +82,7 @@ describe('AppController (e2e)', () => {
         startsAt: '2026-09-02T08:00:00.000Z',
         dueAt: '2026-09-02T12:00:00.000Z',
         priority: 'HIGH',
+        employeeId,
       })
       .expect(201);
 
@@ -85,11 +99,14 @@ describe('AppController (e2e)', () => {
       .expect(200);
     expect(updateResponse.body.status).toBe('IN_PROGRESS');
 
+    await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(409);
+
     await request(app.getHttpServer())
       .patch(`/api/tasks/${taskId}`)
       .send({ dueAt: '2026-09-02T07:00:00.000Z' })
       .expect(400);
     await request(app.getHttpServer()).delete(`/api/tasks/${taskId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(204);
   });
 
   it('creates, filters, updates and deletes a resource', async () => {
@@ -137,6 +154,9 @@ describe('AppController (e2e)', () => {
   afterAll(async () => {
     await prisma.task.deleteMany({
       where: { title: { startsWith: testPrefix } },
+    });
+    await prisma.employee.deleteMany({
+      where: { email: { startsWith: testPrefix } },
     });
     await prisma.resource.deleteMany({
       where: { code: { startsWith: testPrefix } },

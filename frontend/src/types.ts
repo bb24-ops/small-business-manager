@@ -5,8 +5,11 @@ export interface ResourcePayload { name: string; code: string; description?: str
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
-export interface Task { id: string; title: string; description?: string | null; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; createdAt: string; updatedAt: string }
-export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus }
+export type EmployeeStatus = 'ACTIVE' | 'INACTIVE'
+export interface Employee { id: string; firstName: string; lastName: string; email: string; phone?: string | null; position: string; status: EmployeeStatus; createdAt: string; updatedAt: string; _count?: { tasks: number } }
+export interface EmployeePayload { firstName: string; lastName: string; email: string; phone?: string; position: string; status: EmployeeStatus }
+export interface Task { id: string; title: string; description?: string | null; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId?: string | null; employee?: Employee | null; createdAt: string; updatedAt: string }
+export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId: string }
 
 export interface DashboardStats {
   totalResources: number
@@ -17,4 +20,6 @@ export interface DashboardStats {
   totalTasks: number
   taskByStatus: Record<TaskStatus, number>
   upcomingTasks: Task[]
+  totalEmployees: number
+  activeEmployees: number
 }

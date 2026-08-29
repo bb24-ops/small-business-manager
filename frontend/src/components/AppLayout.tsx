@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AssignmentRounded, DashboardRounded, Inventory2Rounded, MenuRounded } from '@mui/icons-material'
+import { AssignmentRounded, DashboardRounded, GroupsRounded, Inventory2Rounded, MenuRounded } from '@mui/icons-material'
 import { AppBar, Box, Button, Chip, Drawer, IconButton, Paper, Stack, Toolbar, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, useLocation, useNavigate } from 'react-router'
@@ -9,6 +9,7 @@ const navigation = [
   { label: 'Kontrolna tabla', path: '/dashboard', icon: <DashboardRounded /> },
   { label: 'Resursi', path: '/resources', icon: <Inventory2Rounded /> },
   { label: 'Zadaci', path: '/tasks', icon: <AssignmentRounded /> },
+  { label: 'Zaposleni', path: '/employees', icon: <GroupsRounded /> },
 ]
 
 export function AppLayout() {
@@ -30,7 +31,7 @@ export function AppLayout() {
         >{item.label}</Button>
       })}
     </Stack>
-    <Typography variant="overline" color="text.secondary">Razvojna verzija 0.3</Typography>
+    <Typography variant="overline" color="text.secondary">Razvojna verzija 0.4</Typography>
   </Box>
 
   return <Box className="app-shell">

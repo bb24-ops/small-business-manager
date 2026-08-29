@@ -75,6 +75,7 @@ npm.cmd run build
 - provera dostupnosti backend-a;
 - Prisma modeli i migracija za kategorije i poslovne resurse;
 - Prisma model i migracija za poslovne zadatke;
+- Prisma model i migracija za zaposlene i dodelu zadataka;
 - CRUD REST API za kategorije i resurse;
 - validacija ulaznih podataka i obrada konflikata;
 - pretraga i filtriranje resursa prema statusu i kategoriji;
@@ -86,18 +87,23 @@ npm.cmd run build
 - forma za dodavanje kategorije;
 - dodavanje, izmena i brisanje resursa kroz React interfejs;
 - CRUD zadataka sa početkom, rokom, prioritetom i statusom;
+- CRUD zaposlenih sa kontaktom, pozicijom i statusom;
+- dodeljivanje zadatka jednom aktivnom zaposlenom;
+- zaštita od brisanja zaposlenog koji ima dodeljene zadatke;
 - pretraga i filtriranje zadataka na ruti `/tasks`;
 - pregled broja i predstojećih zadataka na kontrolnoj tabli;
 - Swagger/OpenAPI dokumentacija;
 - unit i end-to-end testovi.
 
-Autentifikacija, korisnici, dodeljivanje zadataka zaposlenima, rezervacije resursa i ostali poslovni moduli još nisu implementirani.
+Autentifikacija, korisnički nalozi, rezervacije resursa i ostali poslovni moduli još nisu implementirani.
 
 ## Glavne adrese
 
 - Kontrolna tabla: `http://localhost:5174/dashboard`
 - Resursi: `http://localhost:5174/resources`
 - Zadaci: `http://localhost:5174/tasks`
+- Zaposleni: `http://localhost:5174/employees`
 - Tasks API: `http://localhost:3001/api/tasks`
+- Employees API: `http://localhost:3001/api/employees`
 - Dashboard API: `http://localhost:3001/api/dashboard/stats`
 - Swagger: `http://localhost:3001/api/docs`

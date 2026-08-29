@@ -1,4 +1,4 @@
-import type { DashboardStats, Resource, ResourceCategory, ResourcePayload, ResourceStatus, Task, TaskPayload, TaskPriority, TaskStatus } from './types'
+import type { DashboardStats, Employee, EmployeePayload, EmployeeStatus, Resource, ResourceCategory, ResourcePayload, ResourceStatus, Task, TaskPayload, TaskPriority, TaskStatus } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 export class ApiError extends Error {
@@ -52,5 +52,17 @@ export const api = {
     create: (payload: TaskPayload) => apiRequest<Task>('/tasks', { method: 'POST', body: JSON.stringify(payload) }),
     update: (id: string, payload: Partial<TaskPayload>) => apiRequest<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     remove: (id: string) => apiRequest<void>(`/tasks/${id}`, { method: 'DELETE' }),
+  },
+  employees: {
+    list: (filters: { search?: string; status?: EmployeeStatus | '' } = {}) => {
+      const params = new URLSearchParams()
+      if (filters.search) params.set('search', filters.search)
+      if (filters.status) params.set('status', filters.status)
+      const query = params.toString()
+      return apiRequest<Employee[]>(`/employees${query ? `?${query}` : ''}`)
+    },
+    create: (payload: EmployeePayload) => apiRequest<Employee>('/employees', { method: 'POST', body: JSON.stringify(payload) }),
+    update: (id: string, payload: EmployeePayload) => apiRequest<Employee>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    remove: (id: string) => apiRequest<void>(`/employees/${id}`, { method: 'DELETE' }),
   },
 }
