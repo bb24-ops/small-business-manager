@@ -6,6 +6,7 @@ import { ResourceCategoriesModule } from './resource-categories/resource-categor
 import { ResourcesModule } from './resources/resources.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
+import { ReservationsModule } from './reservations/reservations.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 
 function validateEnvironment(config: Record<string, unknown>) {
@@ -30,6 +31,7 @@ function validateEnvironment(config: Record<string, unknown>) {
     ResourcesModule,
     TasksModule,
     EmployeesModule,
+    ReservationsModule,
     DashboardModule,
   ],
   controllers: [AppController],

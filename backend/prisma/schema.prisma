@@ -59,6 +59,7 @@ model Task {
   status      TaskStatus   @default(TODO)
   employeeId  String?      @db.Char(36)
   employee    Employee?    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -87,10 +88,28 @@ model Resource {
   status      ResourceStatus   @default(AVAILABLE)
   categoryId  String           @db.Char(36)
   category    ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
   @@index([categoryId])
   @@index([status])
   @@index([name])
+}
+
+model Reservation {
+  id         String   @id @default(uuid()) @db.Char(36)
+  taskId     String   @db.Char(36)
+  resourceId String   @db.Char(36)
+  startsAt   DateTime
+  endsAt     DateTime
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([taskId, resourceId])
+  @@index([resourceId, startsAt, endsAt])
+  @@index([taskId])
+  @@index([startsAt])
 }

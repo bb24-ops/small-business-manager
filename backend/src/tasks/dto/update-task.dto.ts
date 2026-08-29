@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '@prisma/client';
 import {
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -47,4 +49,11 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsUUID()
   employeeId?: string;
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  resourceIds?: string[];
 }

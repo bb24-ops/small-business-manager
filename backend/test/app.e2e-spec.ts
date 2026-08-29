@@ -60,6 +60,8 @@ describe('AppController (e2e)', () => {
     expect(response.body.upcomingTasks).toBeInstanceOf(Array);
     expect(response.body.totalEmployees).toBeTypeOf('number');
     expect(response.body.activeEmployees).toBeTypeOf('number');
+    expect(response.body.totalReservations).toBeTypeOf('number');
+    expect(response.body.upcomingReservations).toBeInstanceOf(Array);
   });
 
   it('creates, filters, updates and deletes a task', async () => {
@@ -73,6 +75,16 @@ describe('AppController (e2e)', () => {
       })
       .expect(201);
     const employeeId = employeeResponse.body.id as string;
+    const taskCategoryResponse = await request(app.getHttpServer())
+      .post('/api/resource-categories')
+      .send({ name: `${testPrefix}-Task-oprema` })
+      .expect(201);
+    const taskCategoryId = taskCategoryResponse.body.id as string;
+    const taskResourceResponse = await request(app.getHttpServer())
+      .post('/api/resources')
+      .send({ name: 'Test oprema', code: `${testPrefix}-TASK-001`, categoryId: taskCategoryId })
+      .expect(201);
+    const taskResourceId = taskResourceResponse.body.id as string;
 
     const taskResponse = await request(app.getHttpServer())
       .post('/api/tasks')
@@ -83,6 +95,7 @@ describe('AppController (e2e)', () => {
         dueAt: '2026-09-02T12:00:00.000Z',
         priority: 'HIGH',
         employeeId,
+        resourceIds: [taskResourceId],
       })
       .expect(201);
 
@@ -92,6 +105,30 @@ describe('AppController (e2e)', () => {
       .query({ search: testPrefix, priority: 'HIGH' })
       .expect(200);
     expect(listResponse.body).toHaveLength(1);
+    expect(listResponse.body[0].reservations[0].resource.id).toBe(taskResourceId);
+
+    await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} konflikt`,
+        startsAt: '2026-09-02T10:00:00.000Z',
+        dueAt: '2026-09-02T13:00:00.000Z',
+        employeeId,
+        resourceIds: [taskResourceId],
+      })
+      .expect(409);
+
+    const adjacentResponse = await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} susedni termin`,
+        startsAt: '2026-09-02T12:00:00.000Z',
+        dueAt: '2026-09-02T14:00:00.000Z',
+        employeeId,
+        resourceIds: [taskResourceId],
+      })
+      .expect(201);
+    const adjacentTaskId = adjacentResponse.body.id as string;
 
     const updateResponse = await request(app.getHttpServer())
       .patch(`/api/tasks/${taskId}`)
@@ -106,7 +143,10 @@ describe('AppController (e2e)', () => {
       .send({ dueAt: '2026-09-02T07:00:00.000Z' })
       .expect(400);
     await request(app.getHttpServer()).delete(`/api/tasks/${taskId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/tasks/${adjacentTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/resources/${taskResourceId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/resource-categories/${taskCategoryId}`).expect(204);
   });
 
   it('creates, filters, updates and deletes a resource', async () => {

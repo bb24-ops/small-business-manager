@@ -8,6 +8,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'))
 const TasksPage = lazy(() => import('./pages/TasksPage'))
 const EmployeesPage = lazy(() => import('./pages/EmployeesPage'))
+const ReservationsPage = lazy(() => import('./pages/ReservationsPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
       <Route path="resources" element={<ResourcesPage />} />
       <Route path="tasks" element={<TasksPage />} />
       <Route path="employees" element={<EmployeesPage />} />
+      <Route path="reservations" element={<ReservationsPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Route>
   </Routes></Suspense>

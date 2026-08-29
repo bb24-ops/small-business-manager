@@ -90,12 +90,16 @@ npm.cmd run build
 - CRUD zaposlenih sa kontaktom, pozicijom i statusom;
 - dodeljivanje zadatka jednom aktivnom zaposlenom;
 - zaštita od brisanja zaposlenog koji ima dodeljene zadatke;
+- povezivanje zadatka sa jednim ili više potrebnih resursa;
+- automatsko kreiranje i ažuriranje rezervacija prema terminu zadatka;
+- sprečavanje rezervacija nedostupnih resursa i vremenskih konflikata;
+- pregled i filtriranje rezervacija na ruti `/reservations`;
 - pretraga i filtriranje zadataka na ruti `/tasks`;
 - pregled broja i predstojećih zadataka na kontrolnoj tabli;
 - Swagger/OpenAPI dokumentacija;
 - unit i end-to-end testovi.
 
-Autentifikacija, korisnički nalozi, rezervacije resursa i ostali poslovni moduli još nisu implementirani.
+Autentifikacija, korisnički nalozi, kalendarski prikaz i ostali poslovni moduli još nisu implementirani.
 
 ## Glavne adrese
 
@@ -103,7 +107,9 @@ Autentifikacija, korisnički nalozi, rezervacije resursa i ostali poslovni modul
 - Resursi: `http://localhost:5174/resources`
 - Zadaci: `http://localhost:5174/tasks`
 - Zaposleni: `http://localhost:5174/employees`
+- Rezervacije: `http://localhost:5174/reservations`
 - Tasks API: `http://localhost:3001/api/tasks`
 - Employees API: `http://localhost:3001/api/employees`
+- Reservations API: `http://localhost:3001/api/reservations`
 - Dashboard API: `http://localhost:3001/api/dashboard/stats`
 - Swagger: `http://localhost:3001/api/docs`

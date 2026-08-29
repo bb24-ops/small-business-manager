@@ -1,4 +1,4 @@
-import type { DashboardStats, Employee, EmployeePayload, EmployeeStatus, Resource, ResourceCategory, ResourcePayload, ResourceStatus, Task, TaskPayload, TaskPriority, TaskStatus } from './types'
+import type { DashboardStats, Employee, EmployeePayload, EmployeeStatus, Reservation, Resource, ResourceCategory, ResourcePayload, ResourceStatus, Task, TaskPayload, TaskPriority, TaskStatus } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 export class ApiError extends Error {
@@ -64,5 +64,15 @@ export const api = {
     create: (payload: EmployeePayload) => apiRequest<Employee>('/employees', { method: 'POST', body: JSON.stringify(payload) }),
     update: (id: string, payload: EmployeePayload) => apiRequest<Employee>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     remove: (id: string) => apiRequest<void>(`/employees/${id}`, { method: 'DELETE' }),
+  },
+  reservations: {
+    list: (filters: { resourceId?: string; from?: string; to?: string } = {}) => {
+      const params = new URLSearchParams()
+      if (filters.resourceId) params.set('resourceId', filters.resourceId)
+      if (filters.from) params.set('from', new Date(filters.from).toISOString())
+      if (filters.to) params.set('to', new Date(filters.to).toISOString())
+      const query = params.toString()
+      return apiRequest<Reservation[]>(`/reservations${query ? `?${query}` : ''}`)
+    },
   },
 }

@@ -18,6 +18,8 @@ export class DashboardService {
       upcomingTasks,
       totalEmployees,
       activeEmployees,
+      totalReservations,
+      upcomingReservations,
     ] = await Promise.all([
       this.prisma.resource.count(),
       this.prisma.resourceCategory.count(),
@@ -48,6 +50,13 @@ export class DashboardService {
       }),
       this.prisma.employee.count(),
       this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.reservation.count(),
+      this.prisma.reservation.findMany({
+        where: { endsAt: { gte: new Date() } },
+        take: 5,
+        include: { resource: true, task: { include: { employee: true } } },
+        orderBy: { startsAt: 'asc' },
+      }),
     ]);
 
     const byStatus: Record<ResourceStatus, number> = {
@@ -85,6 +94,8 @@ export class DashboardService {
       upcomingTasks,
       totalEmployees,
       activeEmployees,
+      totalReservations,
+      upcomingReservations,
     };
   }
 }

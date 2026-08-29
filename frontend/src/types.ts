@@ -8,8 +8,9 @@ export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE'
 export interface Employee { id: string; firstName: string; lastName: string; email: string; phone?: string | null; position: string; status: EmployeeStatus; createdAt: string; updatedAt: string; _count?: { tasks: number } }
 export interface EmployeePayload { firstName: string; lastName: string; email: string; phone?: string; position: string; status: EmployeeStatus }
-export interface Task { id: string; title: string; description?: string | null; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId?: string | null; employee?: Employee | null; createdAt: string; updatedAt: string }
-export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId: string }
+export interface Reservation { id: string; taskId: string; resourceId: string; startsAt: string; endsAt: string; task: Task; resource: Resource; createdAt: string; updatedAt: string }
+export interface Task { id: string; title: string; description?: string | null; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId?: string | null; employee?: Employee | null; reservations: Array<Omit<Reservation, 'task'>>; createdAt: string; updatedAt: string }
+export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId: string; resourceIds: string[] }
 
 export interface DashboardStats {
   totalResources: number
@@ -22,4 +23,6 @@ export interface DashboardStats {
   upcomingTasks: Task[]
   totalEmployees: number
   activeEmployees: number
+  totalReservations: number
+  upcomingReservations: Reservation[]
 }
