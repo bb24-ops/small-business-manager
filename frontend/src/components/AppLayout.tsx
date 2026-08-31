@@ -32,7 +32,6 @@ export function AppLayout() {
         >{item.label}</Button>
       })}
     </Stack>
-    <Typography variant="overline" color="text.secondary">Razvojna verzija 0.5</Typography>
   </Box>
 
   return <Box className="app-shell">
