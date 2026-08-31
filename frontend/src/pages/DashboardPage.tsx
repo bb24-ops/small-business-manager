@@ -1,4 +1,4 @@
-import { ArrowForwardRounded, AssignmentRounded, CategoryRounded, GroupsRounded, Inventory2Rounded, ScheduleRounded } from '@mui/icons-material'
+import { ArrowForwardRounded, AssignmentRounded, CategoryRounded, Inventory2Rounded, ScheduleRounded } from '@mui/icons-material'
 import { Alert, Box, Button, Chip, CircularProgress, Container, LinearProgress, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
@@ -38,14 +38,11 @@ export default function DashboardPage() {
       <Paper className="stat-card" elevation={0}><Typography color="text.secondary" variant="body2">Rezervacije</Typography><Typography variant="h4" color="info.main">{stats.totalReservations}</Typography><Typography variant="caption" color="text.secondary">evidentiranih korišćenja resursa</Typography></Paper>
     </Box>
 
-    <Box className="dashboard-grid">
+    <Box sx={{ mb: 2.5 }}>
       <Paper className="dashboard-panel" elevation={0}><Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}><Box><Typography variant="h6">Resursi po kategorijama</Typography><Typography variant="body2" color="text.secondary">Raspodela evidentiranih sredstava</Typography></Box><CategoryRounded color="primary" /></Stack>
         <Stack spacing={2.2}>{stats.byCategory.length ? stats.byCategory.map((category) => <Box key={category.id}><Stack direction="row" sx={{ justifyContent: 'space-between', mb: 0.7 }}><Typography variant="body2" sx={{ fontWeight: 600 }}>{category.name}</Typography><Typography variant="body2" color="text.secondary">{category.count}</Typography></Stack><LinearProgress variant="determinate" value={(category.count / maxCategoryCount) * 100} /></Box>) : <Box className="compact-empty"><CategoryRounded /><Typography>Nema kreiranih kategorija.</Typography></Box>}</Stack>
       </Paper>
 
-      <Paper className="dashboard-panel roadmap-panel" elevation={0}><Typography variant="h6">Razvoj sistema</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>Moduli planirani u narednim iteracijama</Typography><Stack spacing={1.5}>
-        {[{ icon: <GroupsRounded />, title: 'Korisnički nalozi', text: 'Prijava, uloge i kontrola pristupa' }, { icon: <ScheduleRounded />, title: 'Kalendar', text: 'Kalendarski prikaz obaveza' }].map((item) => <Box className="roadmap-item" key={item.title}>{item.icon}<Box><Typography sx={{ fontWeight: 600 }}>{item.title}</Typography><Typography variant="caption" color="text.secondary">{item.text}</Typography></Box><Chip label="Planirano" size="small" /></Box>)}
-      </Stack></Paper>
     </Box>
 
     <Paper className="dashboard-panel recent-panel" elevation={0} sx={{ mb: 2.5 }}><Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}><Box><Typography variant="h6">Predstojeći zadaci</Typography><Typography variant="body2" color="text.secondary">Aktivne obaveze poređane prema roku</Typography></Box><Button endIcon={<ArrowForwardRounded />} onClick={() => navigate('/tasks')}>Prikaži sve</Button></Stack>
