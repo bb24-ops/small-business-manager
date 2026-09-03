@@ -10,7 +10,15 @@ import './index.css'
 import App from './App.tsx'
 import { theme } from './theme'
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: false } } })
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      refetchInterval: 30_000,
+      refetchOnWindowFocus: true,
+    },
+  },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

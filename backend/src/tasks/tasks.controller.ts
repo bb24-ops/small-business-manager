@@ -42,6 +42,11 @@ export class TasksController {
     return this.service.update(id, dto);
   }
 
+  @Patch(':id/complete')
+  complete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.complete(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {

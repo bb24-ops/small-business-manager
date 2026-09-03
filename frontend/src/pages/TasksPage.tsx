@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   AddRounded,
   AssignmentRounded,
+  CheckCircleOutlineRounded,
   DeleteOutlineRounded,
   EditOutlined,
   SearchRounded,
@@ -77,6 +78,9 @@ export default function TasksPage() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["tasks"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] }),
+      queryClient.invalidateQueries({ queryKey: ["resources"] }),
+      queryClient.invalidateQueries({ queryKey: ["employees"] }),
+      queryClient.invalidateQueries({ queryKey: ["reservations"] }),
     ]);
   const saveTask = useMutation({
     mutationFn: (payload: TaskPayload) =>
@@ -100,6 +104,15 @@ export default function TasksPage() {
     onSuccess: async () => {
       await refresh();
       setNotice({ message: "Zadatak je obrisan.", severity: "success" });
+    },
+    onError: (error) =>
+      setNotice({ message: getErrorMessage(error), severity: "error" }),
+  });
+  const completeTask = useMutation({
+    mutationFn: api.tasks.complete,
+    onSuccess: async () => {
+      await refresh();
+      setNotice({ message: "Zadatak je označen kao završen.", severity: "success" });
     },
     onError: (error) =>
       setNotice({ message: getErrorMessage(error), severity: "error" }),
@@ -288,8 +301,27 @@ export default function TasksPage() {
                         color={taskStatusColors[task.status]}
                         label={taskStatusLabels[task.status]}
                       />
+                      {task.status === "DONE" && task.completedAt && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                          Završeno: {formatDate(task.completedAt)}
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell align="right">
+                      {task.status !== "DONE" && (
+                        <IconButton
+                          aria-label="Označi zadatak kao završen"
+                          color="success"
+                          disabled={completeTask.isPending}
+                          onClick={() => {
+                            if (window.confirm(`Označiti zadatak „${task.title}” kao završen?`)) {
+                              completeTask.mutate(task.id);
+                            }
+                          }}
+                        >
+                          <CheckCircleOutlineRounded />
+                        </IconButton>
+                      )}
                       <IconButton
                         aria-label="Izmeni zadatak"
                         onClick={() => {

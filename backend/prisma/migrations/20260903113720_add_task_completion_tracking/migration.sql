@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `Task` ADD COLUMN `completedAt` DATETIME(3) NULL,
+    MODIFY `status` ENUM('TODO', 'IN_PROGRESS', 'OVERDUE', 'DONE') NOT NULL DEFAULT 'TODO';

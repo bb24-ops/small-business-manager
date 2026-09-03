@@ -1,27 +1,35 @@
-import type { TaskPriority, TaskStatus } from './types'
+import type { TaskPriority, TaskStatus } from "./types";
 
 export const taskStatusLabels: Record<TaskStatus, string> = {
-  TODO: 'Za uraditi',
-  IN_PROGRESS: 'U toku',
-  DONE: 'Završeno',
-}
+  TODO: "Za uraditi",
+  IN_PROGRESS: "U toku",
+  OVERDUE: "Kasni",
+  DONE: "Završeno",
+};
 
-export const taskStatusColors: Record<TaskStatus, 'default' | 'info' | 'success'> = {
-  TODO: 'default',
-  IN_PROGRESS: 'info',
-  DONE: 'success',
-}
+export const taskStatusColors: Record<
+  TaskStatus,
+  "default" | "info" | "success" | "error"
+> = {
+  TODO: "default",
+  IN_PROGRESS: "info",
+  OVERDUE: "error",
+  DONE: "success",
+};
 
 export const taskPriorityLabels: Record<TaskPriority, string> = {
-  LOW: 'Nizak',
-  MEDIUM: 'Srednji',
-  HIGH: 'Visok',
-  URGENT: 'Hitan',
-}
+  LOW: "Nizak",
+  MEDIUM: "Srednji",
+  HIGH: "Visok",
+  URGENT: "Hitan",
+};
 
-export const taskPriorityColors: Record<TaskPriority, 'default' | 'info' | 'warning' | 'error'> = {
-  LOW: 'default',
-  MEDIUM: 'info',
-  HIGH: 'warning',
-  URGENT: 'error',
-}
+export const taskPriorityColors: Record<
+  TaskPriority,
+  "default" | "info" | "warning" | "error"
+> = {
+  LOW: "default",
+  MEDIUM: "info",
+  HIGH: "warning",
+  URGENT: "error",
+};

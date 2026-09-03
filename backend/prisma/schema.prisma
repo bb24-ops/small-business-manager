@@ -18,6 +18,7 @@ enum ResourceStatus {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  OVERDUE
   DONE
 }
 
@@ -57,6 +58,7 @@ model Task {
   dueAt       DateTime
   priority    TaskPriority @default(MEDIUM)
   status      TaskStatus   @default(TODO)
+  completedAt DateTime?
   employeeId  String?      @db.Char(36)
   employee    Employee?    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   reservations Reservation[]

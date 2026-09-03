@@ -5,6 +5,7 @@ import { CreateTaskDto } from './dto/create-task.dto.js';
 import { TaskQueryDto } from './dto/task-query.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
 import { TaskResourceAllocationDto } from './dto/task-resource-allocation.dto.js';
+import { getAutomaticTaskStatus, synchronizeTaskStatuses } from './task-status.util.js';
 
 const taskInclude = {
   employee: true,
@@ -15,7 +16,8 @@ const taskInclude = {
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(query: TaskQueryDto) {
+  async findAll(query: TaskQueryDto) {
+    await synchronizeTaskStatuses(this.prisma);
     const where: Prisma.TaskWhereInput = {
       status: query.status,
       priority: query.priority,
@@ -25,6 +27,7 @@ export class TasksService {
   }
 
   async findOne(id: string) {
+    await synchronizeTaskStatuses(this.prisma);
     const task = await this.prisma.task.findUnique({ where: { id }, include: taskInclude });
     if (!task) throw new NotFoundException('Zadatak nije pronađen.');
     return task;
@@ -33,15 +36,22 @@ export class TasksService {
   async create(dto: CreateTaskDto) {
     this.validatePeriod(dto.startsAt, dto.dueAt);
     const { resources, ...taskData } = dto;
+    const startsAt = new Date(dto.startsAt);
+    const dueAt = new Date(dto.dueAt);
+    const status = dto.status === TaskStatus.DONE
+      ? TaskStatus.DONE
+      : getAutomaticTaskStatus(startsAt, dueAt);
     return this.prisma.$transaction(async (tx) => {
       const employee = await this.validateActiveEmployee(tx, dto.employeeId);
-      if (dto.status !== TaskStatus.DONE) {
+      if (status !== TaskStatus.DONE) {
         await this.validateEmployeeAvailability(tx, employee, dto.startsAt, dto.dueAt);
       }
       await this.validateResources(tx, resources, dto.startsAt, dto.dueAt);
       return tx.task.create({
         data: {
           ...taskData,
+          status,
+          completedAt: status === TaskStatus.DONE ? new Date() : null,
           reservations: { create: resources.map((allocation) => ({ resourceId: allocation.resourceId, quantity: allocation.quantity, startsAt: dto.startsAt, endsAt: dto.dueAt })) },
         },
         include: taskInclude,
@@ -54,10 +64,13 @@ export class TasksService {
     const startsAt = dto.startsAt ?? existing.startsAt.toISOString();
     const dueAt = dto.dueAt ?? existing.dueAt.toISOString();
     const employeeId = dto.employeeId ?? existing.employeeId;
-    const status = dto.status ?? existing.status;
+    const requestedStatus = dto.status ?? existing.status;
+    const status = requestedStatus === TaskStatus.DONE
+      ? TaskStatus.DONE
+      : getAutomaticTaskStatus(new Date(startsAt), new Date(dueAt));
     const allocations = dto.resources ?? existing.reservations.map((reservation) => ({ resourceId: reservation.resourceId, quantity: reservation.quantity }));
     this.validatePeriod(startsAt, dueAt);
-    const { resources: _resources, ...taskData } = dto;
+    const { resources: _resources, status: _status, ...taskData } = dto;
 
     return this.prisma.$transaction(async (tx) => {
       const employee = dto.employeeId
@@ -76,8 +89,28 @@ export class TasksService {
           update: { quantity: allocation.quantity, startsAt, endsAt: dueAt },
         });
       }
-      return tx.task.update({ where: { id }, data: taskData, include: taskInclude });
+      return tx.task.update({
+        where: { id },
+        data: {
+          ...taskData,
+          status,
+          completedAt: status === TaskStatus.DONE
+            ? existing.completedAt ?? new Date()
+            : null,
+        },
+        include: taskInclude,
+      });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  async complete(id: string) {
+    const existing = await this.findOne(id);
+    if (existing.status === TaskStatus.DONE) return existing;
+    return this.prisma.task.update({
+      where: { id },
+      data: { status: TaskStatus.DONE, completedAt: new Date() },
+      include: taskInclude,
+    });
   }
 
   async remove(id: string) {
@@ -126,12 +159,15 @@ export class TasksService {
     if (new Set(resourceIds).size !== resourceIds.length) throw new BadRequestException('Isti resurs ne može biti dodat više puta.');
     const resources = await tx.resource.findMany({ where: { id: { in: resourceIds } } });
     if (resources.length !== resourceIds.length) throw new BadRequestException('Jedan ili više izabranih resursa ne postoje.');
-    const unavailable = resources.filter((resource) => resource.status !== ResourceStatus.AVAILABLE);
+    const unavailable = resources.filter(
+      (resource) => resource.status !== ResourceStatus.AVAILABLE && resource.status !== ResourceStatus.IN_USE,
+    );
     if (unavailable.length) throw new ConflictException(`Resurs „${unavailable[0].name}” trenutno nije dostupan.`);
     const overlapping = await tx.reservation.findMany({
       where: {
         resourceId: { in: resourceIds },
         taskId: excludedTaskId ? { not: excludedTaskId } : undefined,
+        task: { status: { not: TaskStatus.DONE } },
         startsAt: { lt: new Date(endsAt) },
         endsAt: { gt: new Date(startsAt) },
       },

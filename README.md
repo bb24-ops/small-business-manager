@@ -87,6 +87,8 @@ npm.cmd run build
 - forma za dodavanje kategorije;
 - dodavanje, izmena i brisanje resursa kroz React interfejs;
 - CRUD zadataka sa početkom, rokom, prioritetom i statusom;
+- automatsko određivanje statusa „Za uraditi”, „U toku” i „Kasni” prema planiranom terminu;
+- ručna potvrda završetka zadatka uz evidentiranje vremena završavanja;
 - CRUD zaposlenih sa kontaktom, pozicijom i statusom;
 - dodeljivanje zadatka jednom aktivnom zaposlenom;
 - sprečavanje vremenskog preklapanja aktivnih zadataka istog zaposlenog;
@@ -94,6 +96,7 @@ npm.cmd run build
 - povezivanje zadatka sa jednim ili više potrebnih resursa;
 - evidentiranje ukupne količine svake vrste resursa;
 - izbor potrebne količine resursa prilikom kreiranja zadatka;
+- automatski prikaz trenutno zauzete i dostupne količine resursa;
 - automatsko kreiranje i ažuriranje rezervacija prema terminu zadatka;
 - sprečavanje rezervacija koje bi u istom terminu premašile raspoloživu količinu;
 - pregled i filtriranje rezervacija na ruti `/reservations`;

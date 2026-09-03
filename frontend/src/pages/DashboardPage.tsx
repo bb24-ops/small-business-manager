@@ -129,7 +129,9 @@ export default function DashboardPage() {
             Aktivni zadaci
           </Typography>
           <Typography variant="h4" color="primary.main">
-            {stats.taskByStatus.TODO + stats.taskByStatus.IN_PROGRESS}
+            {stats.taskByStatus.TODO +
+              stats.taskByStatus.IN_PROGRESS +
+              stats.taskByStatus.OVERDUE}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             od ukupno {stats.totalTasks} zadataka
@@ -137,13 +139,13 @@ export default function DashboardPage() {
         </Paper>
         <Paper className="stat-card" elevation={0}>
           <Typography color="text.secondary" variant="body2">
-            Aktivni zaposleni
+            Trenutno dostupni zaposleni
           </Typography>
           <Typography variant="h4" color="success.main">
-            {stats.activeEmployees}
+            {stats.availableEmployees}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            od ukupno {stats.totalEmployees} zaposlenih
+            {stats.busyEmployees} zauzeto · {stats.activeEmployees} aktivno
           </Typography>
         </Paper>
         <Paper className="stat-card" elevation={0}>
@@ -218,9 +220,9 @@ export default function DashboardPage() {
           sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}
         >
           <Box>
-            <Typography variant="h6">Predstojeći zadaci</Typography>
+              <Typography variant="h6">Aktivni zadaci</Typography>
             <Typography variant="body2" color="text.secondary">
-              Aktivne obaveze poređane prema roku
+                Nezavršene obaveze poređane prema roku
             </Typography>
           </Box>
           <Button
@@ -399,8 +401,8 @@ export default function DashboardPage() {
                   <TableCell>
                     <Chip
                       size="small"
-                      color={statusColors[resource.status]}
-                      label={statusLabels[resource.status]}
+                        color={statusColors[resource.currentStatus]}
+                        label={statusLabels[resource.currentStatus]}
                     />
                   </TableCell>
                 </TableRow>

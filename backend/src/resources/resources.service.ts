@@ -1,18 +1,23 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ResourceStatus, TaskStatus } from '@prisma/client';
 import { throwPrismaConflict } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { ResourceQueryDto } from './dto/resource-query.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
+import { synchronizeTaskStatuses } from '../tasks/task-status.util.js';
 
 @Injectable()
 export class ResourcesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(query: ResourceQueryDto) {
+  async findAll(query: ResourceQueryDto) {
+    await synchronizeTaskStatuses(this.prisma);
+    const usesCalculatedStatus = query.status === ResourceStatus.AVAILABLE || query.status === ResourceStatus.IN_USE;
     const where: Prisma.ResourceWhereInput = {
-      status: query.status,
+      status: usesCalculatedStatus
+        ? { in: [ResourceStatus.AVAILABLE, ResourceStatus.IN_USE] }
+        : query.status,
       categoryId: query.categoryId,
       ...(query.search
         ? {
@@ -25,28 +30,35 @@ export class ResourcesService {
         : {}),
     };
 
-    return this.prisma.resource.findMany({
+    const resources = await this.prisma.resource.findMany({
       where,
       include: { category: true },
       orderBy: [{ status: 'asc' }, { name: 'asc' }],
     });
+    const enrichedResources = await this.withCurrentAvailability(resources);
+    return usesCalculatedStatus
+      ? enrichedResources.filter((resource) => resource.currentStatus === query.status)
+      : enrichedResources;
   }
 
   async findOne(id: string) {
+    await synchronizeTaskStatuses(this.prisma);
     const resource = await this.prisma.resource.findUnique({
       where: { id },
       include: { category: true },
     });
     if (!resource) throw new NotFoundException('Resurs nije pronađen.');
-    return resource;
+    return (await this.withCurrentAvailability([resource]))[0];
   }
 
   async create(dto: CreateResourceDto) {
+    this.validateManagedStatus(dto.status);
     try {
-      return await this.prisma.resource.create({
+      const resource = await this.prisma.resource.create({
         data: dto,
         include: { category: true },
       });
+      return (await this.withCurrentAvailability([resource]))[0];
     } catch (error) {
       throwPrismaConflict(
         error,
@@ -57,6 +69,7 @@ export class ResourcesService {
 
   async update(id: string, dto: UpdateResourceDto) {
     await this.findOne(id);
+    this.validateManagedStatus(dto.status);
     if (dto.quantity !== undefined) {
       const reservations = await this.prisma.reservation.findMany({
         where: { resourceId: id },
@@ -70,11 +83,12 @@ export class ResourcesService {
       }
     }
     try {
-      return await this.prisma.resource.update({
+      const resource = await this.prisma.resource.update({
         where: { id },
         data: dto,
         include: { category: true },
       });
+      return (await this.withCurrentAvailability([resource]))[0];
     } catch (error) {
       throwPrismaConflict(
         error,
@@ -103,5 +117,43 @@ export class ResourcesService {
       maximum = Math.max(maximum, current);
     }
     return maximum;
+  }
+
+  private validateManagedStatus(status?: ResourceStatus) {
+    if (status === ResourceStatus.IN_USE) {
+      throw new ConflictException('Status „U upotrebi” određuje se automatski prema aktivnim rezervacijama.');
+    }
+  }
+
+  private async withCurrentAvailability<T extends { id: string; status: ResourceStatus; quantity: number }>(resources: T[]) {
+    if (!resources.length) return [];
+    const now = new Date();
+    const reservations = await this.prisma.reservation.groupBy({
+      by: ['resourceId'],
+      where: {
+        resourceId: { in: resources.map((resource) => resource.id) },
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+        task: { status: { not: TaskStatus.DONE } },
+      },
+      _sum: { quantity: true },
+    });
+    const inUseByResource = new Map(
+      reservations.map((reservation) => [reservation.resourceId, reservation._sum.quantity ?? 0]),
+    );
+    return resources.map((resource) => {
+      const schedulable = resource.status === ResourceStatus.AVAILABLE || resource.status === ResourceStatus.IN_USE;
+      const currentQuantityInUse = schedulable ? inUseByResource.get(resource.id) ?? 0 : 0;
+      return {
+        ...resource,
+        currentQuantityInUse,
+        currentQuantityAvailable: schedulable ? Math.max(resource.quantity - currentQuantityInUse, 0) : 0,
+        currentStatus: !schedulable
+          ? resource.status
+          : currentQuantityInUse > 0
+            ? ResourceStatus.IN_USE
+            : ResourceStatus.AVAILABLE,
+      };
+    });
   }
 }

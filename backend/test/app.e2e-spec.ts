@@ -116,8 +116,8 @@ describe('AppController (e2e)', () => {
       .send({
         title: `${testPrefix} terenski zadatak`,
         description: 'E2E provera zadatka',
-        startsAt: '2026-09-02T08:00:00.000Z',
-        dueAt: '2026-09-02T12:00:00.000Z',
+        startsAt: '2030-09-02T08:00:00.000Z',
+        dueAt: '2030-09-02T12:00:00.000Z',
         priority: 'HIGH',
         employeeId,
         resources: [{ resourceId: taskResourceId, quantity: 2 }],
@@ -137,8 +137,8 @@ describe('AppController (e2e)', () => {
       .post('/api/tasks')
       .send({
         title: `${testPrefix} konflikt zaposlenog`,
-        startsAt: '2026-09-02T09:00:00.000Z',
-        dueAt: '2026-09-02T10:00:00.000Z',
+        startsAt: '2030-09-02T09:00:00.000Z',
+        dueAt: '2030-09-02T10:00:00.000Z',
         employeeId,
         resources: [{ resourceId: taskResourceId, quantity: 1 }],
       })
@@ -151,8 +151,8 @@ describe('AppController (e2e)', () => {
       .post('/api/tasks')
       .send({
         title: `${testPrefix} dozvoljeno preklapanje`,
-        startsAt: '2026-09-02T10:00:00.000Z',
-        dueAt: '2026-09-02T13:00:00.000Z',
+        startsAt: '2030-09-02T10:00:00.000Z',
+        dueAt: '2030-09-02T13:00:00.000Z',
         employeeId: secondEmployeeId,
         resources: [{ resourceId: taskResourceId, quantity: 3 }],
       })
@@ -168,8 +168,8 @@ describe('AppController (e2e)', () => {
       .post('/api/tasks')
       .send({
         title: `${testPrefix} konflikt kapaciteta`,
-        startsAt: '2026-09-02T11:00:00.000Z',
-        dueAt: '2026-09-02T12:00:00.000Z',
+        startsAt: '2030-09-02T11:00:00.000Z',
+        dueAt: '2030-09-02T12:00:00.000Z',
         employeeId: thirdEmployeeId,
         resources: [{ resourceId: taskResourceId, quantity: 1 }],
       })
@@ -182,8 +182,8 @@ describe('AppController (e2e)', () => {
       .post('/api/tasks')
       .send({
         title: `${testPrefix} susedni termin`,
-        startsAt: '2026-09-02T13:00:00.000Z',
-        dueAt: '2026-09-02T14:00:00.000Z',
+        startsAt: '2030-09-02T13:00:00.000Z',
+        dueAt: '2030-09-02T14:00:00.000Z',
         employeeId,
         resources: [{ resourceId: taskResourceId, quantity: 5 }],
       })
@@ -192,9 +192,48 @@ describe('AppController (e2e)', () => {
 
     const updateResponse = await request(app.getHttpServer())
       .patch(`/api/tasks/${taskId}`)
-      .send({ status: 'IN_PROGRESS' })
+      .send({ priority: 'URGENT' })
       .expect(200);
-    expect(updateResponse.body.status).toBe('IN_PROGRESS');
+    expect(updateResponse.body.priority).toBe('URGENT');
+    expect(updateResponse.body.status).toBe('TODO');
+
+    const now = Date.now();
+    const currentTaskResponse = await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} trenutni zadatak`,
+        startsAt: new Date(now - 30 * 60_000).toISOString(),
+        dueAt: new Date(now + 30 * 60_000).toISOString(),
+        employeeId: thirdEmployeeId,
+        resources: [{ resourceId: taskResourceId, quantity: 1 }],
+      })
+      .expect(201);
+    const currentTaskId = currentTaskResponse.body.id as string;
+    expect(currentTaskResponse.body.status).toBe('IN_PROGRESS');
+
+    const resourcesWhileActive = await request(app.getHttpServer()).get('/api/resources').expect(200);
+    const activeResource = resourcesWhileActive.body.find((resource: { id: string }) => resource.id === taskResourceId);
+    expect(activeResource.currentStatus).toBe('IN_USE');
+    expect(activeResource.currentQuantityInUse).toBe(1);
+
+    const employeesWhileActive = await request(app.getHttpServer()).get('/api/employees').expect(200);
+    const busyEmployee = employeesWhileActive.body.find((employee: { id: string }) => employee.id === thirdEmployeeId);
+    expect(busyEmployee.isCurrentlyBusy).toBe(true);
+
+    const completedResponse = await request(app.getHttpServer())
+      .patch(`/api/tasks/${currentTaskId}/complete`)
+      .expect(200);
+    expect(completedResponse.body.status).toBe('DONE');
+    expect(completedResponse.body.completedAt).toBeTypeOf('string');
+
+    const resourcesAfterCompletion = await request(app.getHttpServer()).get('/api/resources').expect(200);
+    const releasedResource = resourcesAfterCompletion.body.find((resource: { id: string }) => resource.id === taskResourceId);
+    expect(releasedResource.currentStatus).toBe('AVAILABLE');
+    expect(releasedResource.currentQuantityInUse).toBe(0);
+
+    const employeesAfterCompletion = await request(app.getHttpServer()).get('/api/employees').expect(200);
+    const releasedEmployee = employeesAfterCompletion.body.find((employee: { id: string }) => employee.id === thirdEmployeeId);
+    expect(releasedEmployee.isCurrentlyBusy).toBe(false);
 
     await request(app.getHttpServer())
       .patch(`/api/resources/${taskResourceId}`)
@@ -205,11 +244,12 @@ describe('AppController (e2e)', () => {
 
     await request(app.getHttpServer())
       .patch(`/api/tasks/${taskId}`)
-      .send({ dueAt: '2026-09-02T07:00:00.000Z' })
+      .send({ dueAt: '2030-09-02T07:00:00.000Z' })
       .expect(400);
     await request(app.getHttpServer()).delete(`/api/tasks/${taskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/tasks/${overlappingTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/tasks/${adjacentTaskId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/tasks/${currentTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${secondEmployeeId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${thirdEmployeeId}`).expect(204);

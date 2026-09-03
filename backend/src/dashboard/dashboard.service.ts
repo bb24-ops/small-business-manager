@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ResourceStatus, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { synchronizeTaskStatuses } from '../tasks/task-status.util.js';
 
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
+    await synchronizeTaskStatuses(this.prisma);
+    const now = new Date();
     const [
-      totalResources,
+      resources,
       totalCategories,
-      statusGroups,
       categories,
       recentResources,
       totalTasks,
@@ -20,13 +22,11 @@ export class DashboardService {
       activeEmployees,
       totalReservations,
       upcomingReservations,
+      currentReservations,
+      currentEmployeeTasks,
     ] = await Promise.all([
-      this.prisma.resource.aggregate({ _sum: { quantity: true } }),
+      this.prisma.resource.findMany({ select: { id: true, status: true, quantity: true } }),
       this.prisma.resourceCategory.count(),
-      this.prisma.resource.groupBy({
-        by: ['status'],
-        _sum: { quantity: true },
-      }),
       this.prisma.resourceCategory.findMany({
         select: {
           id: true,
@@ -52,10 +52,28 @@ export class DashboardService {
       this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
       this.prisma.reservation.count(),
       this.prisma.reservation.findMany({
-        where: { endsAt: { gte: new Date() } },
+        where: { endsAt: { gte: now }, task: { status: { not: TaskStatus.DONE } } },
         take: 5,
         include: { resource: true, task: { include: { employee: true } } },
         orderBy: { startsAt: 'asc' },
+      }),
+      this.prisma.reservation.findMany({
+        where: {
+          startsAt: { lte: now },
+          endsAt: { gt: now },
+          task: { status: { not: TaskStatus.DONE } },
+          resource: { status: { in: [ResourceStatus.AVAILABLE, ResourceStatus.IN_USE] } },
+        },
+        select: { resourceId: true, quantity: true },
+      }),
+      this.prisma.task.findMany({
+        where: {
+          employeeId: { not: null },
+          status: { not: TaskStatus.DONE },
+          startsAt: { lte: now },
+          dueAt: { gt: now },
+        },
+        select: { employeeId: true },
       }),
     ]);
 
@@ -66,13 +84,29 @@ export class DashboardService {
       UNAVAILABLE: 0,
     };
 
-    for (const group of statusGroups) {
-      byStatus[group.status] = group._sum.quantity ?? 0;
+    const schedulableQuantity = resources
+      .filter((resource) => resource.status === ResourceStatus.AVAILABLE || resource.status === ResourceStatus.IN_USE)
+      .reduce((sum, resource) => sum + resource.quantity, 0);
+    byStatus.IN_USE = currentReservations.reduce((sum, reservation) => sum + reservation.quantity, 0);
+    byStatus.AVAILABLE = Math.max(schedulableQuantity - byStatus.IN_USE, 0);
+    byStatus.MAINTENANCE = resources
+      .filter((resource) => resource.status === ResourceStatus.MAINTENANCE)
+      .reduce((sum, resource) => sum + resource.quantity, 0);
+    byStatus.UNAVAILABLE = resources
+      .filter((resource) => resource.status === ResourceStatus.UNAVAILABLE)
+      .reduce((sum, resource) => sum + resource.quantity, 0);
+    const currentUsageByResource = new Map<string, number>();
+    for (const reservation of currentReservations) {
+      currentUsageByResource.set(
+        reservation.resourceId,
+        (currentUsageByResource.get(reservation.resourceId) ?? 0) + reservation.quantity,
+      );
     }
 
     const taskByStatus: Record<TaskStatus, number> = {
       TODO: 0,
       IN_PROGRESS: 0,
+      OVERDUE: 0,
       DONE: 0,
     };
     for (const group of taskStatusGroups) {
@@ -80,7 +114,7 @@ export class DashboardService {
     }
 
     return {
-      totalResources: totalResources._sum.quantity ?? 0,
+      totalResources: resources.reduce((sum, resource) => sum + resource.quantity, 0),
       totalCategories,
       byStatus,
       byCategory: categories.map((category) => ({
@@ -89,12 +123,30 @@ export class DashboardService {
         count: category.resources
           .reduce((sum, resource) => sum + resource.quantity, 0),
       })),
-      recentResources,
+      recentResources: recentResources.map((resource) => {
+        const schedulable = resource.status === ResourceStatus.AVAILABLE || resource.status === ResourceStatus.IN_USE;
+        const currentQuantityInUse = schedulable ? currentUsageByResource.get(resource.id) ?? 0 : 0;
+        return {
+          ...resource,
+          currentQuantityInUse,
+          currentQuantityAvailable: schedulable ? Math.max(resource.quantity - currentQuantityInUse, 0) : 0,
+          currentStatus: !schedulable
+            ? resource.status
+            : currentQuantityInUse > 0
+              ? ResourceStatus.IN_USE
+              : ResourceStatus.AVAILABLE,
+        };
+      }),
       totalTasks,
       taskByStatus,
       upcomingTasks,
       totalEmployees,
       activeEmployees,
+      busyEmployees: new Set(currentEmployeeTasks.map((task) => task.employeeId)).size,
+      availableEmployees: Math.max(
+        activeEmployees - new Set(currentEmployeeTasks.map((task) => task.employeeId)).size,
+        0,
+      ),
       totalReservations,
       upcomingReservations,
     };
