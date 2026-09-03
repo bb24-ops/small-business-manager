@@ -89,6 +89,7 @@ npm.cmd run build
 - CRUD zadataka sa početkom, rokom, prioritetom i statusom;
 - CRUD zaposlenih sa kontaktom, pozicijom i statusom;
 - dodeljivanje zadatka jednom aktivnom zaposlenom;
+- sprečavanje vremenskog preklapanja aktivnih zadataka istog zaposlenog;
 - zaštita od brisanja zaposlenog koji ima dodeljene zadatke;
 - povezivanje zadatka sa jednim ili više potrebnih resursa;
 - evidentiranje ukupne količine svake vrste resursa;

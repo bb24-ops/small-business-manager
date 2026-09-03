@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ResourceStatus } from '@prisma/client';
+import { Prisma, ResourceStatus, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { TaskQueryDto } from './dto/task-query.dto.js';
@@ -34,7 +34,10 @@ export class TasksService {
     this.validatePeriod(dto.startsAt, dto.dueAt);
     const { resources, ...taskData } = dto;
     return this.prisma.$transaction(async (tx) => {
-      await this.validateActiveEmployee(tx, dto.employeeId);
+      const employee = await this.validateActiveEmployee(tx, dto.employeeId);
+      if (dto.status !== TaskStatus.DONE) {
+        await this.validateEmployeeAvailability(tx, employee, dto.startsAt, dto.dueAt);
+      }
       await this.validateResources(tx, resources, dto.startsAt, dto.dueAt);
       return tx.task.create({
         data: {
@@ -50,12 +53,19 @@ export class TasksService {
     const existing = await this.findOne(id);
     const startsAt = dto.startsAt ?? existing.startsAt.toISOString();
     const dueAt = dto.dueAt ?? existing.dueAt.toISOString();
+    const employeeId = dto.employeeId ?? existing.employeeId;
+    const status = dto.status ?? existing.status;
     const allocations = dto.resources ?? existing.reservations.map((reservation) => ({ resourceId: reservation.resourceId, quantity: reservation.quantity }));
     this.validatePeriod(startsAt, dueAt);
     const { resources: _resources, ...taskData } = dto;
 
     return this.prisma.$transaction(async (tx) => {
-      if (dto.employeeId) await this.validateActiveEmployee(tx, dto.employeeId);
+      const employee = dto.employeeId
+        ? await this.validateActiveEmployee(tx, dto.employeeId)
+        : existing.employee;
+      if (employeeId && employee && status !== TaskStatus.DONE) {
+        await this.validateEmployeeAvailability(tx, employee, startsAt, dueAt, id);
+      }
       await this.validateResources(tx, allocations, startsAt, dueAt, id);
       const resourceIds = allocations.map((allocation) => allocation.resourceId);
       await tx.reservation.deleteMany({ where: { taskId: id, resourceId: { notIn: resourceIds } } });
@@ -83,6 +93,32 @@ export class TasksService {
     const employee = await tx.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new BadRequestException('Izabrani zaposleni ne postoji.');
     if (employee.status !== 'ACTIVE') throw new BadRequestException('Zadatak se može dodeliti samo aktivnom zaposlenom.');
+    return employee;
+  }
+
+  private async validateEmployeeAvailability(
+    tx: Prisma.TransactionClient,
+    employee: { id: string; firstName: string; lastName: string },
+    startsAt: string,
+    dueAt: string,
+    excludedTaskId?: string,
+  ) {
+    const overlappingTask = await tx.task.findFirst({
+      where: {
+        employeeId: employee.id,
+        status: { not: TaskStatus.DONE },
+        id: excludedTaskId ? { not: excludedTaskId } : undefined,
+        startsAt: { lt: new Date(dueAt) },
+        dueAt: { gt: new Date(startsAt) },
+      },
+      select: { title: true, startsAt: true, dueAt: true },
+      orderBy: { startsAt: 'asc' },
+    });
+    if (overlappingTask) {
+      throw new ConflictException(
+        `${employee.firstName} ${employee.lastName} već ima aktivan zadatak „${overlappingTask.title}” u izabranom periodu.`,
+      );
+    }
   }
 
   private async validateResources(tx: Prisma.TransactionClient, allocations: TaskResourceAllocationDto[], startsAt: string, endsAt: string, excludedTaskId?: string) {

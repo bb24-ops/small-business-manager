@@ -75,6 +75,26 @@ describe('AppController (e2e)', () => {
       })
       .expect(201);
     const employeeId = employeeResponse.body.id as string;
+    const secondEmployeeResponse = await request(app.getHttpServer())
+      .post('/api/employees')
+      .send({
+        firstName: 'Drugi',
+        lastName: 'Zaposleni',
+        email: `${testPrefix}-drugi@example.com`,
+        position: 'Tehničar',
+      })
+      .expect(201);
+    const secondEmployeeId = secondEmployeeResponse.body.id as string;
+    const thirdEmployeeResponse = await request(app.getHttpServer())
+      .post('/api/employees')
+      .send({
+        firstName: 'Treći',
+        lastName: 'Zaposleni',
+        email: `${testPrefix}-treci@example.com`,
+        position: 'Tehničar',
+      })
+      .expect(201);
+    const thirdEmployeeId = thirdEmployeeResponse.body.id as string;
     const taskCategoryResponse = await request(app.getHttpServer())
       .post('/api/resource-categories')
       .send({ name: `${testPrefix}-Task-oprema` })
@@ -113,17 +133,36 @@ describe('AppController (e2e)', () => {
     expect(listResponse.body[0].reservations[0].resource.id).toBe(taskResourceId);
     expect(listResponse.body[0].reservations[0].quantity).toBe(2);
 
+    await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} konflikt zaposlenog`,
+        startsAt: '2026-09-02T09:00:00.000Z',
+        dueAt: '2026-09-02T10:00:00.000Z',
+        employeeId,
+        resources: [{ resourceId: taskResourceId, quantity: 1 }],
+      })
+      .expect(409)
+      .expect(({ body }) => {
+        expect(body.message).toContain('već ima aktivan zadatak');
+      });
+
     const overlappingResponse = await request(app.getHttpServer())
       .post('/api/tasks')
       .send({
         title: `${testPrefix} dozvoljeno preklapanje`,
         startsAt: '2026-09-02T10:00:00.000Z',
         dueAt: '2026-09-02T13:00:00.000Z',
-        employeeId,
+        employeeId: secondEmployeeId,
         resources: [{ resourceId: taskResourceId, quantity: 3 }],
       })
       .expect(201);
     const overlappingTaskId = overlappingResponse.body.id as string;
+
+    await request(app.getHttpServer())
+      .patch(`/api/tasks/${overlappingTaskId}`)
+      .send({ employeeId })
+      .expect(409);
 
     await request(app.getHttpServer())
       .post('/api/tasks')
@@ -131,10 +170,13 @@ describe('AppController (e2e)', () => {
         title: `${testPrefix} konflikt kapaciteta`,
         startsAt: '2026-09-02T11:00:00.000Z',
         dueAt: '2026-09-02T12:00:00.000Z',
-        employeeId,
+        employeeId: thirdEmployeeId,
         resources: [{ resourceId: taskResourceId, quantity: 1 }],
       })
-      .expect(409);
+      .expect(409)
+      .expect(({ body }) => {
+        expect(body.message).toContain('dostupno je najviše');
+      });
 
     const adjacentResponse = await request(app.getHttpServer())
       .post('/api/tasks')
@@ -169,6 +211,8 @@ describe('AppController (e2e)', () => {
     await request(app.getHttpServer()).delete(`/api/tasks/${overlappingTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/tasks/${adjacentTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/employees/${secondEmployeeId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/employees/${thirdEmployeeId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/resources/${taskResourceId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/resource-categories/${taskCategoryId}`).expect(204);
   });
