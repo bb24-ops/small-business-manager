@@ -3,10 +3,12 @@ import { ResourceStatus } from '@prisma/client';
 import {
   IsEnum,
   IsOptional,
+  IsInt,
   IsString,
   IsUUID,
   Length,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class CreateResourceDto {
@@ -43,4 +45,10 @@ export class CreateResourceDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   categoryId!: string;
+
+  @ApiPropertyOptional({ example: 5, default: 1, minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
 }

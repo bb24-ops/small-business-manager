@@ -86,6 +86,7 @@ model Resource {
   description String?          @db.Text
   location    String?          @db.VarChar(150)
   status      ResourceStatus   @default(AVAILABLE)
+  quantity    Int              @default(1)
   categoryId  String           @db.Char(36)
   category    ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   reservations Reservation[]
@@ -103,6 +104,7 @@ model Reservation {
   resourceId String   @db.Char(36)
   startsAt   DateTime
   endsAt     DateTime
+  quantity   Int      @default(1)
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
   createdAt  DateTime @default(now())

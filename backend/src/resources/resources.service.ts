@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { throwPrismaConflict } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -57,6 +57,18 @@ export class ResourcesService {
 
   async update(id: string, dto: UpdateResourceDto) {
     await this.findOne(id);
+    if (dto.quantity !== undefined) {
+      const reservations = await this.prisma.reservation.findMany({
+        where: { resourceId: id },
+        select: { startsAt: true, endsAt: true, quantity: true },
+      });
+      const maxReserved = this.getMaximumConcurrentQuantity(reservations);
+      if (dto.quantity < maxReserved) {
+        throw new ConflictException(
+          `Količina ne može biti manja od najveće već rezervisane količine (${maxReserved}).`,
+        );
+      }
+    }
     try {
       return await this.prisma.resource.update({
         where: { id },
@@ -74,5 +86,22 @@ export class ResourcesService {
   async remove(id: string) {
     await this.findOne(id);
     return this.prisma.resource.delete({ where: { id } });
+  }
+
+  private getMaximumConcurrentQuantity(
+    reservations: Array<{ startsAt: Date; endsAt: Date; quantity: number }>,
+  ) {
+    const events = reservations.flatMap((reservation) => [
+      { at: reservation.startsAt.getTime(), change: reservation.quantity },
+      { at: reservation.endsAt.getTime(), change: -reservation.quantity },
+    ]);
+    events.sort((a, b) => a.at - b.at || a.change - b.change);
+    let current = 0;
+    let maximum = 0;
+    for (const event of events) {
+      current += event.change;
+      maximum = Math.max(maximum, current);
+    }
+    return maximum;
   }
 }

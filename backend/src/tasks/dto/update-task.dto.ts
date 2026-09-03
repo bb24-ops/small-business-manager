@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '@prisma/client';
 import {
-  ArrayUnique,
+  ArrayNotEmpty,
   IsArray,
   IsDateString,
   IsEnum,
@@ -11,6 +11,9 @@ import {
   Length,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
+import { TaskResourceAllocationDto } from './task-resource-allocation.dto.js';
 
 export class UpdateTaskDto {
   @ApiPropertyOptional()
@@ -50,10 +53,11 @@ export class UpdateTaskDto {
   @IsUUID()
   employeeId?: string;
 
-  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @ApiPropertyOptional({ type: [TaskResourceAllocationDto] })
   @IsOptional()
   @IsArray()
-  @ArrayUnique()
-  @IsUUID('4', { each: true })
-  resourceIds?: string[];
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => TaskResourceAllocationDto)
+  resources?: TaskResourceAllocationDto[];
 }

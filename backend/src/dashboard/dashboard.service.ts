@@ -21,17 +21,17 @@ export class DashboardService {
       totalReservations,
       upcomingReservations,
     ] = await Promise.all([
-      this.prisma.resource.count(),
+      this.prisma.resource.aggregate({ _sum: { quantity: true } }),
       this.prisma.resourceCategory.count(),
       this.prisma.resource.groupBy({
         by: ['status'],
-        _count: { _all: true },
+        _sum: { quantity: true },
       }),
       this.prisma.resourceCategory.findMany({
         select: {
           id: true,
           name: true,
-          _count: { select: { resources: true } },
+          resources: { select: { quantity: true } },
         },
         orderBy: { name: 'asc' },
       }),
@@ -67,7 +67,7 @@ export class DashboardService {
     };
 
     for (const group of statusGroups) {
-      byStatus[group.status] = group._count._all;
+      byStatus[group.status] = group._sum.quantity ?? 0;
     }
 
     const taskByStatus: Record<TaskStatus, number> = {
@@ -80,13 +80,14 @@ export class DashboardService {
     }
 
     return {
-      totalResources,
+      totalResources: totalResources._sum.quantity ?? 0,
       totalCategories,
       byStatus,
       byCategory: categories.map((category) => ({
         id: category.id,
         name: category.name,
-        count: category._count.resources,
+        count: category.resources
+          .reduce((sum, resource) => sum + resource.quantity, 0),
       })),
       recentResources,
       totalTasks,

@@ -1,16 +1,17 @@
 export type ResourceStatus = 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'UNAVAILABLE'
 export interface ResourceCategory { id: string; name: string; description?: string | null; _count?: { resources: number } }
-export interface Resource { id: string; name: string; code: string; description?: string | null; location?: string | null; status: ResourceStatus; categoryId: string; category: ResourceCategory; createdAt: string; updatedAt: string }
-export interface ResourcePayload { name: string; code: string; description?: string; location?: string; status: ResourceStatus; categoryId: string }
+export interface Resource { id: string; name: string; code: string; description?: string | null; location?: string | null; status: ResourceStatus; quantity: number; categoryId: string; category: ResourceCategory; createdAt: string; updatedAt: string }
+export interface ResourcePayload { name: string; code: string; description?: string; location?: string; status: ResourceStatus; quantity: number; categoryId: string }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE'
 export interface Employee { id: string; firstName: string; lastName: string; email: string; phone?: string | null; position: string; status: EmployeeStatus; createdAt: string; updatedAt: string; _count?: { tasks: number } }
 export interface EmployeePayload { firstName: string; lastName: string; email: string; phone?: string; position: string; status: EmployeeStatus }
-export interface Reservation { id: string; taskId: string; resourceId: string; startsAt: string; endsAt: string; task: Task; resource: Resource; createdAt: string; updatedAt: string }
+export interface ResourceAllocation { resourceId: string; quantity: number }
+export interface Reservation { id: string; taskId: string; resourceId: string; startsAt: string; endsAt: string; quantity: number; task: Task; resource: Resource; createdAt: string; updatedAt: string }
 export interface Task { id: string; title: string; description?: string | null; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId?: string | null; employee?: Employee | null; reservations: Array<Omit<Reservation, 'task'>>; createdAt: string; updatedAt: string }
-export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId: string; resourceIds: string[] }
+export interface TaskPayload { title: string; description?: string; startsAt: string; dueAt: string; priority: TaskPriority; status: TaskStatus; employeeId: string; resources: ResourceAllocation[] }
 
 export interface DashboardStats {
   totalResources: number

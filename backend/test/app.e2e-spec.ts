@@ -82,7 +82,12 @@ describe('AppController (e2e)', () => {
     const taskCategoryId = taskCategoryResponse.body.id as string;
     const taskResourceResponse = await request(app.getHttpServer())
       .post('/api/resources')
-      .send({ name: 'Test oprema', code: `${testPrefix}-TASK-001`, categoryId: taskCategoryId })
+      .send({
+        name: 'Test oprema',
+        code: `${testPrefix}-TASK-001`,
+        categoryId: taskCategoryId,
+        quantity: 5,
+      })
       .expect(201);
     const taskResourceId = taskResourceResponse.body.id as string;
 
@@ -95,7 +100,7 @@ describe('AppController (e2e)', () => {
         dueAt: '2026-09-02T12:00:00.000Z',
         priority: 'HIGH',
         employeeId,
-        resourceIds: [taskResourceId],
+        resources: [{ resourceId: taskResourceId, quantity: 2 }],
       })
       .expect(201);
 
@@ -106,15 +111,28 @@ describe('AppController (e2e)', () => {
       .expect(200);
     expect(listResponse.body).toHaveLength(1);
     expect(listResponse.body[0].reservations[0].resource.id).toBe(taskResourceId);
+    expect(listResponse.body[0].reservations[0].quantity).toBe(2);
+
+    const overlappingResponse = await request(app.getHttpServer())
+      .post('/api/tasks')
+      .send({
+        title: `${testPrefix} dozvoljeno preklapanje`,
+        startsAt: '2026-09-02T10:00:00.000Z',
+        dueAt: '2026-09-02T13:00:00.000Z',
+        employeeId,
+        resources: [{ resourceId: taskResourceId, quantity: 3 }],
+      })
+      .expect(201);
+    const overlappingTaskId = overlappingResponse.body.id as string;
 
     await request(app.getHttpServer())
       .post('/api/tasks')
       .send({
-        title: `${testPrefix} konflikt`,
-        startsAt: '2026-09-02T10:00:00.000Z',
-        dueAt: '2026-09-02T13:00:00.000Z',
+        title: `${testPrefix} konflikt kapaciteta`,
+        startsAt: '2026-09-02T11:00:00.000Z',
+        dueAt: '2026-09-02T12:00:00.000Z',
         employeeId,
-        resourceIds: [taskResourceId],
+        resources: [{ resourceId: taskResourceId, quantity: 1 }],
       })
       .expect(409);
 
@@ -122,10 +140,10 @@ describe('AppController (e2e)', () => {
       .post('/api/tasks')
       .send({
         title: `${testPrefix} susedni termin`,
-        startsAt: '2026-09-02T12:00:00.000Z',
+        startsAt: '2026-09-02T13:00:00.000Z',
         dueAt: '2026-09-02T14:00:00.000Z',
         employeeId,
-        resourceIds: [taskResourceId],
+        resources: [{ resourceId: taskResourceId, quantity: 5 }],
       })
       .expect(201);
     const adjacentTaskId = adjacentResponse.body.id as string;
@@ -136,6 +154,11 @@ describe('AppController (e2e)', () => {
       .expect(200);
     expect(updateResponse.body.status).toBe('IN_PROGRESS');
 
+    await request(app.getHttpServer())
+      .patch(`/api/resources/${taskResourceId}`)
+      .send({ quantity: 4 })
+      .expect(409);
+
     await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(409);
 
     await request(app.getHttpServer())
@@ -143,6 +166,7 @@ describe('AppController (e2e)', () => {
       .send({ dueAt: '2026-09-02T07:00:00.000Z' })
       .expect(400);
     await request(app.getHttpServer()).delete(`/api/tasks/${taskId}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/tasks/${overlappingTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/tasks/${adjacentTaskId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/employees/${employeeId}`).expect(204);
     await request(app.getHttpServer()).delete(`/api/resources/${taskResourceId}`).expect(204);
@@ -163,6 +187,7 @@ describe('AppController (e2e)', () => {
         code: `${testPrefix}-001`,
         categoryId,
         location: 'Test garaža',
+        quantity: 3,
       })
       .expect(201);
 
@@ -175,6 +200,7 @@ describe('AppController (e2e)', () => {
 
     expect(listResponse.body).toHaveLength(1);
     expect(listResponse.body[0].category.id).toBe(categoryId);
+    expect(listResponse.body[0].quantity).toBe(3);
 
     const updateResponse = await request(app.getHttpServer())
       .patch(`/api/resources/${resourceId}`)

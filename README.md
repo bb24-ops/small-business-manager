@@ -91,8 +91,10 @@ npm.cmd run build
 - dodeljivanje zadatka jednom aktivnom zaposlenom;
 - zaštita od brisanja zaposlenog koji ima dodeljene zadatke;
 - povezivanje zadatka sa jednim ili više potrebnih resursa;
+- evidentiranje ukupne količine svake vrste resursa;
+- izbor potrebne količine resursa prilikom kreiranja zadatka;
 - automatsko kreiranje i ažuriranje rezervacija prema terminu zadatka;
-- sprečavanje rezervacija nedostupnih resursa i vremenskih konflikata;
+- sprečavanje rezervacija koje bi u istom terminu premašile raspoloživu količinu;
 - pregled i filtriranje rezervacija na ruti `/reservations`;
 - pretraga i filtriranje zadataka na ruti `/tasks`;
 - pregled broja i predstojećih zadataka na kontrolnoj tabli;

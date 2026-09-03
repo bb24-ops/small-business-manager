@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '@prisma/client';
 import {
   ArrayNotEmpty,
-  ArrayUnique,
   IsArray,
   IsDateString,
   IsEnum,
@@ -12,6 +11,9 @@ import {
   Length,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
+import { TaskResourceAllocationDto } from './task-resource-allocation.dto.js';
 
 export class CreateTaskDto {
   @ApiProperty({ example: 'Terenska intervencija kod klijenta' })
@@ -47,10 +49,10 @@ export class CreateTaskDto {
   @IsUUID()
   employeeId!: string;
 
-  @ApiProperty({ type: [String], format: 'uuid' })
+  @ApiProperty({ type: [TaskResourceAllocationDto] })
   @IsArray()
   @ArrayNotEmpty()
-  @ArrayUnique()
-  @IsUUID('4', { each: true })
-  resourceIds!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => TaskResourceAllocationDto)
+  resources!: TaskResourceAllocationDto[];
 }

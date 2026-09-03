@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { TaskQueryDto } from './dto/task-query.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
+import { TaskResourceAllocationDto } from './dto/task-resource-allocation.dto.js';
 
 const taskInclude = {
   employee: true,
@@ -31,14 +32,14 @@ export class TasksService {
 
   async create(dto: CreateTaskDto) {
     this.validatePeriod(dto.startsAt, dto.dueAt);
-    const { resourceIds, ...taskData } = dto;
+    const { resources, ...taskData } = dto;
     return this.prisma.$transaction(async (tx) => {
       await this.validateActiveEmployee(tx, dto.employeeId);
-      await this.validateResources(tx, resourceIds, dto.startsAt, dto.dueAt);
+      await this.validateResources(tx, resources, dto.startsAt, dto.dueAt);
       return tx.task.create({
         data: {
           ...taskData,
-          reservations: { create: resourceIds.map((resourceId) => ({ resourceId, startsAt: dto.startsAt, endsAt: dto.dueAt })) },
+          reservations: { create: resources.map((allocation) => ({ resourceId: allocation.resourceId, quantity: allocation.quantity, startsAt: dto.startsAt, endsAt: dto.dueAt })) },
         },
         include: taskInclude,
       });
@@ -49,19 +50,20 @@ export class TasksService {
     const existing = await this.findOne(id);
     const startsAt = dto.startsAt ?? existing.startsAt.toISOString();
     const dueAt = dto.dueAt ?? existing.dueAt.toISOString();
-    const resourceIds = dto.resourceIds ?? existing.reservations.map((reservation) => reservation.resourceId);
+    const allocations = dto.resources ?? existing.reservations.map((reservation) => ({ resourceId: reservation.resourceId, quantity: reservation.quantity }));
     this.validatePeriod(startsAt, dueAt);
-    const { resourceIds: _resourceIds, ...taskData } = dto;
+    const { resources: _resources, ...taskData } = dto;
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.employeeId) await this.validateActiveEmployee(tx, dto.employeeId);
-      await this.validateResources(tx, resourceIds, startsAt, dueAt, id);
+      await this.validateResources(tx, allocations, startsAt, dueAt, id);
+      const resourceIds = allocations.map((allocation) => allocation.resourceId);
       await tx.reservation.deleteMany({ where: { taskId: id, resourceId: { notIn: resourceIds } } });
-      for (const resourceId of resourceIds) {
+      for (const allocation of allocations) {
         await tx.reservation.upsert({
-          where: { taskId_resourceId: { taskId: id, resourceId } },
-          create: { taskId: id, resourceId, startsAt, endsAt: dueAt },
-          update: { startsAt, endsAt: dueAt },
+          where: { taskId_resourceId: { taskId: id, resourceId: allocation.resourceId } },
+          create: { taskId: id, resourceId: allocation.resourceId, quantity: allocation.quantity, startsAt, endsAt: dueAt },
+          update: { quantity: allocation.quantity, startsAt, endsAt: dueAt },
         });
       }
       return tx.task.update({ where: { id }, data: taskData, include: taskInclude });
@@ -83,20 +85,50 @@ export class TasksService {
     if (employee.status !== 'ACTIVE') throw new BadRequestException('Zadatak se može dodeliti samo aktivnom zaposlenom.');
   }
 
-  private async validateResources(tx: Prisma.TransactionClient, resourceIds: string[], startsAt: string, endsAt: string, excludedTaskId?: string) {
+  private async validateResources(tx: Prisma.TransactionClient, allocations: TaskResourceAllocationDto[], startsAt: string, endsAt: string, excludedTaskId?: string) {
+    const resourceIds = allocations.map((allocation) => allocation.resourceId);
+    if (new Set(resourceIds).size !== resourceIds.length) throw new BadRequestException('Isti resurs ne može biti dodat više puta.');
     const resources = await tx.resource.findMany({ where: { id: { in: resourceIds } } });
     if (resources.length !== resourceIds.length) throw new BadRequestException('Jedan ili više izabranih resursa ne postoje.');
     const unavailable = resources.filter((resource) => resource.status !== ResourceStatus.AVAILABLE);
     if (unavailable.length) throw new ConflictException(`Resurs „${unavailable[0].name}” trenutno nije dostupan.`);
-    const conflict = await tx.reservation.findFirst({
+    const overlapping = await tx.reservation.findMany({
       where: {
         resourceId: { in: resourceIds },
         taskId: excludedTaskId ? { not: excludedTaskId } : undefined,
         startsAt: { lt: new Date(endsAt) },
         endsAt: { gt: new Date(startsAt) },
       },
-      include: { resource: true, task: true },
+      include: { task: true },
     });
-    if (conflict) throw new ConflictException(`Resurs „${conflict.resource.name}” je već rezervisan za zadatak „${conflict.task.title}” u izabranom periodu.`);
+    for (const allocation of allocations) {
+      const resource = resources.find((item) => item.id === allocation.resourceId)!;
+      const reservations = overlapping.filter((item) => item.resourceId === allocation.resourceId);
+      const maximumReserved = this.getMaximumConcurrentQuantity(reservations, startsAt, endsAt);
+      if (maximumReserved + allocation.quantity > resource.quantity) {
+        throw new ConflictException(`Za resurs „${resource.name}” dostupno je najviše ${resource.quantity - maximumReserved} od ukupno ${resource.quantity} jedinica u izabranom periodu.`);
+      }
+    }
+  }
+
+  private getMaximumConcurrentQuantity(
+    reservations: Array<{ startsAt: Date; endsAt: Date; quantity: number }>,
+    startsAt: string,
+    endsAt: string,
+  ) {
+    const rangeStart = new Date(startsAt).getTime();
+    const rangeEnd = new Date(endsAt).getTime();
+    const events = reservations.flatMap((reservation) => [
+      { at: Math.max(reservation.startsAt.getTime(), rangeStart), change: reservation.quantity },
+      { at: Math.min(reservation.endsAt.getTime(), rangeEnd), change: -reservation.quantity },
+    ]);
+    events.sort((a, b) => a.at - b.at || a.change - b.change);
+    let current = 0;
+    let maximum = 0;
+    for (const event of events) {
+      current += event.change;
+      maximum = Math.max(maximum, current);
+    }
+    return maximum;
   }
 }
