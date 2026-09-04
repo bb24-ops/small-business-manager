@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AssignmentRounded, DashboardRounded, EventAvailableRounded, GroupsRounded, Inventory2Rounded, MenuRounded } from '@mui/icons-material'
+import { AssignmentRounded, CalendarMonthRounded, DashboardRounded, EventAvailableRounded, GroupsRounded, Inventory2Rounded, MenuRounded } from '@mui/icons-material'
 import { AppBar, Box, Button, Chip, Drawer, IconButton, Paper, Stack, Toolbar, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, useLocation, useNavigate } from 'react-router'
@@ -11,6 +11,7 @@ const navigation = [
   { label: 'Zadaci', path: '/tasks', icon: <AssignmentRounded /> },
   { label: 'Zaposleni', path: '/employees', icon: <GroupsRounded /> },
   { label: 'Rezervacije', path: '/reservations', icon: <EventAvailableRounded /> },
+  { label: 'Kalendar', path: '/calendar', icon: <CalendarMonthRounded /> },
 ]
 
 export function AppLayout() {

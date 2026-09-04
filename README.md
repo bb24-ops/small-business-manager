@@ -97,6 +97,9 @@ npm.cmd run build
 - evidentiranje ukupne količine svake vrste resursa;
 - izbor potrebne količine resursa prilikom kreiranja zadatka;
 - automatski prikaz trenutno zauzete i dostupne količine resursa;
+- kalendarski prikaz zadataka po mesecu, nedelji i danu;
+- filtriranje kalendara prema zaposlenom, resursu i statusu zadatka;
+- prikaz detalja zadatka izborom događaja u kalendaru;
 - automatsko kreiranje i ažuriranje rezervacija prema terminu zadatka;
 - sprečavanje rezervacija koje bi u istom terminu premašile raspoloživu količinu;
 - pregled i filtriranje rezervacija na ruti `/reservations`;
@@ -105,7 +108,7 @@ npm.cmd run build
 - Swagger/OpenAPI dokumentacija;
 - unit i end-to-end testovi.
 
-Autentifikacija, korisnički nalozi, kalendarski prikaz i ostali poslovni moduli još nisu implementirani.
+Autentifikacija, korisnički nalozi i ostali poslovni moduli još nisu implementirani.
 
 ## Glavne adrese
 
@@ -114,6 +117,7 @@ Autentifikacija, korisnički nalozi, kalendarski prikaz i ostali poslovni moduli
 - Zadaci: `http://localhost:5174/tasks`
 - Zaposleni: `http://localhost:5174/employees`
 - Rezervacije: `http://localhost:5174/reservations`
+- Kalendar: `http://localhost:5174/calendar`
 - Tasks API: `http://localhost:3001/api/tasks`
 - Employees API: `http://localhost:3001/api/employees`
 - Reservations API: `http://localhost:3001/api/reservations`
