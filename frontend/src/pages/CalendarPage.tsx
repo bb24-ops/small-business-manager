@@ -85,8 +85,7 @@ export default function CalendarPage() {
         title: task.title,
         start: task.startsAt,
         end: task.dueAt,
-        backgroundColor: statusEventColors[task.status],
-        borderColor: statusEventColors[task.status],
+        color: statusEventColors[task.status],
         extendedProps: { task },
       }));
   }, [employeeId, resourceId, status, tasksQuery.data]);
