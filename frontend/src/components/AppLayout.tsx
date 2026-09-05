@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { AssignmentRounded, CalendarMonthRounded, DashboardRounded, EventAvailableRounded, GroupsRounded, Inventory2Rounded, LogoutRounded, ManageAccountsRounded, MenuRounded } from '@mui/icons-material'
-import { AppBar, Box, Button, Chip, Drawer, IconButton, Paper, Stack, Toolbar, Typography } from '@mui/material'
-import { useQuery } from '@tanstack/react-query'
+import { AppBar, Box, Button, Drawer, IconButton, Paper, Stack, Toolbar, Typography } from '@mui/material'
 import { Outlet, useLocation, useNavigate } from 'react-router'
-import { api } from '../api'
 import { useAuth } from '../auth'
 
 const navigation = [
@@ -21,8 +19,6 @@ export function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const healthQuery = useQuery({ queryKey: ['health'], queryFn: api.health, retry: false })
-
   const navContent = <Box className="sidebar-content">
     <Stack spacing={1}>
       {navigation.filter(item => !item.adminOnly || user?.role === 'ADMIN').map((item) => {
@@ -41,10 +37,9 @@ export function AppLayout() {
   return <Box className="app-shell">
     <AppBar position="static" color="inherit" elevation={0} className="topbar"><Toolbar>
       <IconButton className="mobile-menu-button" aria-label="Otvori navigaciju" onClick={() => setMobileOpen(true)}><MenuRounded /></IconButton>
-      <Box className="brand-mark"><Inventory2Rounded /></Box>
-      <Box sx={{ ml: 1.5, flexGrow: 1 }}><Typography variant="h6">Small Business Manager</Typography><Typography variant="caption" color="text.secondary">Upravljanje resursima i obavezama</Typography></Box>
-      <Chip size="small" color={healthQuery.isSuccess ? 'success' : 'error'} label={healthQuery.isSuccess ? 'Sistem je dostupan' : 'Backend nije dostupan'} variant="outlined" />
-      <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', mx: 1.5 }}><Typography variant="body2">{user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}</Typography><Typography variant="caption" color="text.secondary">{user?.role === 'ADMIN' ? 'Administrator' : 'Zaposleni'}</Typography></Box>
+
+      <Box sx={{ ml: 1.5, flexGrow: 1 }}><Typography variant="h6">Small Business Manager</Typography></Box>
+      <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', mr: 1.5 }}><Typography variant="body2">{user?.employee ? `${user.employee.firstName} ${user.employee.lastName}` : user?.email}</Typography><Typography variant="caption" color="text.secondary">{user?.role === 'ADMIN' ? 'Administrator' : 'Zaposleni'}</Typography></Box>
       <IconButton aria-label="Odjavi se" title="Odjavi se" onClick={() => { logout(); navigate('/login') }}><LogoutRounded /></IconButton>
     </Toolbar></AppBar>
     <Box className="content-layout">
