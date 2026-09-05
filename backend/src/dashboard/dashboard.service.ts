@@ -152,15 +152,17 @@ export class DashboardService {
     };
   }
 
-  async getResourceUsage(days: number) {
+  async getResourceUsage(days: number, direction: 'past' | 'future' = 'past') {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const rangeStart = new Date(todayStart);
-    rangeStart.setDate(rangeStart.getDate() - days + 1);
+    if (direction === 'past') rangeStart.setDate(rangeStart.getDate() - days + 1);
+    const rangeEnd = new Date(direction === 'past' ? now : todayStart);
+    if (direction === 'future') rangeEnd.setDate(rangeEnd.getDate() + days);
 
     const [reservations, capacity] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { startsAt: { lt: now }, endsAt: { gt: rangeStart } },
+        where: { startsAt: { lt: rangeEnd }, endsAt: { gt: rangeStart } },
         select: { startsAt: true, endsAt: true, quantity: true },
       }),
       this.prisma.resource.aggregate({ _sum: { quantity: true } }),
@@ -171,7 +173,9 @@ export class DashboardService {
       dayStart.setDate(dayStart.getDate() + index);
       const dayEnd = new Date(dayStart);
       dayEnd.setDate(dayEnd.getDate() + 1);
-      const analysisEnd = new Date(Math.min(dayEnd.getTime(), now.getTime()));
+      const analysisEnd = direction === 'past'
+        ? new Date(Math.min(dayEnd.getTime(), now.getTime()))
+        : dayEnd;
       const events = reservations.flatMap((reservation) => {
         const start = Math.max(reservation.startsAt.getTime(), dayStart.getTime());
         const end = Math.min(reservation.endsAt.getTime(), analysisEnd.getTime());
@@ -191,6 +195,6 @@ export class DashboardService {
 
     const peak = points.reduce((best, point) => point.peakQuantity > best.peakQuantity ? point : best, points[0]);
     const averageQuantity = Math.round((points.reduce((sum, point) => sum + point.peakQuantity, 0) / points.length) * 10) / 10;
-    return { days, capacity: capacity._sum.quantity ?? 0, averageQuantity, peak, points };
+    return { days, direction, capacity: capacity._sum.quantity ?? 0, averageQuantity, peak, points };
   }
 }

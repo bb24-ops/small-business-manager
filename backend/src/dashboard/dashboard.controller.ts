@@ -18,6 +18,6 @@ export class DashboardController {
 
   @Get('resource-usage')
   getResourceUsage(@Query() query: ResourceUsageQueryDto) {
-    return this.service.getResourceUsage(query.days);
+    return this.service.getResourceUsage(query.days, query.direction);
   }
 }

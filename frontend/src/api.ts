@@ -76,8 +76,8 @@ export const api = {
   },
   dashboard: {
     stats: () => apiRequest<DashboardStats>("/dashboard/stats"),
-    resourceUsage: (days: 7 | 30 | 90) =>
-      apiRequest<ResourceUsageStats>(`/dashboard/resource-usage?days=${days}`),
+    resourceUsage: (days: 7 | 30 | 90, direction: "past" | "future") =>
+      apiRequest<ResourceUsageStats>(`/dashboard/resource-usage?days=${days}&direction=${direction}`),
   },
   categories: {
     list: () => apiRequest<ResourceCategory[]>("/resource-categories"),

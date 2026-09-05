@@ -112,9 +112,19 @@ describe('AppController (e2e)', () => {
     expect(usageResponse.body.points).toHaveLength(7);
     expect(usageResponse.body.peak.peakQuantity).toBeTypeOf('number');
     expect(usageResponse.body.averageQuantity).toBeTypeOf('number');
+    const futureUsageResponse = await request(app.getHttpServer())
+      .get('/api/dashboard/resource-usage')
+      .query({ days: 30, direction: 'future' })
+      .expect(200);
+    expect(futureUsageResponse.body.direction).toBe('future');
+    expect(futureUsageResponse.body.points).toHaveLength(30);
     await request(app.getHttpServer())
       .get('/api/dashboard/resource-usage')
       .query({ days: 10 })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/api/dashboard/resource-usage')
+      .query({ days: 30, direction: 'invalid' })
       .expect(400);
   });
 

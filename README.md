@@ -84,7 +84,7 @@ npm.cmd run build
 - zasebne rute `/dashboard` i `/resources`, uz 404 stranicu;
 - responzivna desktop i mobilna navigacija;
 - dashboard statistika po statusu i kategoriji;
-- grafikon najveće dnevne iskorišćenosti resursa za poslednjih 7, 30 ili 90 dana;
+- grafikon najveće dnevne iskorišćenosti resursa za prethodnih ili narednih 7, 30 i 90 dana;
 - izdvajanje vršnog dana, dnevnog proseka i ukupnog kapaciteta resursa;
 - prikaz poslednje ažuriranih resursa;
 - forma za dodavanje kategorije;
