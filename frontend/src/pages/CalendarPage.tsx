@@ -31,6 +31,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { taskPriorityLabels, taskStatusColors, taskStatusLabels } from "../task-options";
 import type { Task, TaskStatus } from "../types";
+import { useAuth } from "../auth";
 
 const statusEventColors: Record<TaskStatus, string> = {
   TODO: "#64748b",
@@ -63,13 +64,15 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 export default function CalendarPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [employeeId, setEmployeeId] = useState("");
   const [resourceId, setResourceId] = useState("");
   const [status, setStatus] = useState<TaskStatus | "">("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const tasksQuery = useQuery({ queryKey: ["tasks", "calendar"], queryFn: () => api.tasks.list({}) });
-  const employeesQuery = useQuery({ queryKey: ["employees"], queryFn: () => api.employees.list() });
-  const resourcesQuery = useQuery({ queryKey: ["resources"], queryFn: () => api.resources.list({}) });
+  const employeesQuery = useQuery({ queryKey: ["employees"], queryFn: () => api.employees.list(), enabled: isAdmin });
+  const resourcesQuery = useQuery({ queryKey: ["resources"], queryFn: () => api.resources.list({}), enabled: isAdmin });
 
   const events = useMemo<EventInput[]>(() => {
     return (tasksQuery.data ?? [])
@@ -94,11 +97,11 @@ export default function CalendarPage() {
     setSelectedTask(info.event.extendedProps.task as Task);
   };
 
-  if (tasksQuery.isLoading || employeesQuery.isLoading || resourcesQuery.isLoading) {
+  if (tasksQuery.isLoading || (isAdmin && (employeesQuery.isLoading || resourcesQuery.isLoading))) {
     return <Box className="page-loading"><CircularProgress /></Box>;
   }
 
-  if (tasksQuery.isError || employeesQuery.isError || resourcesQuery.isError) {
+  if (tasksQuery.isError || (isAdmin && (employeesQuery.isError || resourcesQuery.isError))) {
     return <Container maxWidth="xl"><Alert severity="error">Kalendar trenutno nije dostupan.</Alert></Container>;
   }
 
@@ -112,7 +115,7 @@ export default function CalendarPage() {
       </Box>
 
       <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2.5 }}>
+        {isAdmin && <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2.5 }}>
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>Zaposleni</InputLabel>
             <Select label="Zaposleni" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
@@ -144,7 +147,7 @@ export default function CalendarPage() {
               ))}
             </Select>
           </FormControl>
-        </Stack>
+        </Stack>}
 
         <Stack direction="row" spacing={2} useFlexGap sx={{ mb: 2.5, flexWrap: "wrap" }}>
           {Object.entries(taskStatusLabels).map(([value, label]) => (

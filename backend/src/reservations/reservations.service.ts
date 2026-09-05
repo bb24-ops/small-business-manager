@@ -8,13 +8,14 @@ import { synchronizeTaskStatuses } from '../tasks/task-status.util.js';
 export class ReservationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: ReservationQueryDto) {
+  async findAll(query: ReservationQueryDto, employeeId?: string) {
     await synchronizeTaskStatuses(this.prisma);
     if (query.from && query.to && new Date(query.to) <= new Date(query.from)) {
       throw new BadRequestException('Kraj perioda mora biti nakon početka.');
     }
     const where: Prisma.ReservationWhereInput = {
       resourceId: query.resourceId,
+      task: employeeId ? { employeeId } : undefined,
       startsAt: query.to ? { lt: new Date(query.to) } : undefined,
       endsAt: query.from ? { gt: new Date(query.from) } : undefined,
     };

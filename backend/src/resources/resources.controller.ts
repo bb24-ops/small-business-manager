@@ -12,12 +12,15 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/roles.decorator.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { ResourceQueryDto } from './dto/resource-query.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
 import { ResourcesService } from './resources.service.js';
 
 @ApiTags('resources')
+@Roles(UserRole.ADMIN)
 @Controller('resources')
 export class ResourcesController {
   constructor(private readonly service: ResourcesService) {}

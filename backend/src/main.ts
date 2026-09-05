@@ -23,6 +23,7 @@ async function bootstrap() {
     .setTitle('Small Business Manager API')
     .setDescription('REST API za upravljanje resursima i obavezama.')
     .setVersion('0.1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);

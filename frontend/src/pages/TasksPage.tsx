@@ -42,6 +42,7 @@ import {
   taskStatusLabels,
 } from "../task-options";
 import type { Task, TaskPayload, TaskPriority, TaskStatus } from "../types";
+import { useAuth } from "../auth";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("sr-Latn-RS", {
@@ -52,6 +53,8 @@ const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Došlo je do neočekivane greške.";
 
 export default function TasksPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<TaskStatus | "">("");
@@ -69,10 +72,12 @@ export default function TasksPage() {
   const employeesQuery = useQuery({
     queryKey: ["employees"],
     queryFn: () => api.employees.list(),
+    enabled: isAdmin,
   });
   const resourcesQuery = useQuery({
     queryKey: ["resources"],
     queryFn: () => api.resources.list({}),
+    enabled: isAdmin,
   });
   const refresh = async () =>
     Promise.all([
@@ -133,7 +138,7 @@ export default function TasksPage() {
             Planiranje obaveza, prioriteta, rokova i potrebnih resursa.
           </Typography>
         </Box>
-        <Button
+        {isAdmin && <Button
           variant="contained"
           startIcon={<AddRounded />}
           disabled={
@@ -146,15 +151,15 @@ export default function TasksPage() {
           }}
         >
           Novi zadatak
-        </Button>
+        </Button>}
       </Stack>
-      {!employeesQuery.isLoading &&
+      {isAdmin && !employeesQuery.isLoading &&
         !employees.some((employee) => employee.status === "ACTIVE") && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Pre kreiranja zadatka dodajte najmanje jednog aktivnog zaposlenog.
           </Alert>
         )}
-      {!resourcesQuery.isLoading &&
+      {isAdmin && !resourcesQuery.isLoading &&
         !resources.some((resource) => resource.status === "AVAILABLE") && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Pre kreiranja zadatka dodajte najmanje jedan dostupan resurs.
@@ -322,7 +327,7 @@ export default function TasksPage() {
                           <CheckCircleOutlineRounded />
                         </IconButton>
                       )}
-                      <IconButton
+                      {isAdmin && <IconButton
                         aria-label="Izmeni zadatak"
                         onClick={() => {
                           setEditingTask(task);
@@ -330,8 +335,8 @@ export default function TasksPage() {
                         }}
                       >
                         <EditOutlined />
-                      </IconButton>
-                      <IconButton
+                      </IconButton>}
+                      {isAdmin && <IconButton
                         aria-label="Obriši zadatak"
                         color="error"
                         onClick={() => {
@@ -342,7 +347,7 @@ export default function TasksPage() {
                         }}
                       >
                         <DeleteOutlineRounded />
-                      </IconButton>
+                      </IconButton>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -366,7 +371,7 @@ export default function TasksPage() {
           </TableContainer>
         )}
       </Paper>
-      {dialogOpen && (
+      {isAdmin && dialogOpen && (
         <TaskDialog
           key={editingTask?.id ?? "new"}
           open

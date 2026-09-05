@@ -35,6 +35,20 @@ export interface ResourcePayload {
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "OVERDUE" | "DONE";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type EmployeeStatus = "ACTIVE" | "INACTIVE";
+export type UserRole = "ADMIN" | "EMPLOYEE";
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  employeeId?: string | null;
+  employee?: { firstName: string; lastName: string } | null;
+}
+export interface UserAccount extends AuthUser {
+  isActive: boolean;
+  employee?: { id: string; firstName: string; lastName: string; position: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface Employee {
   id: string;
   firstName: string;

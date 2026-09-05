@@ -9,6 +9,7 @@ import '@fontsource/roboto/latin-ext-700.css'
 import './index.css'
 import App from './App.tsx'
 import { theme } from './theme'
+import { AuthProvider } from './auth'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,6 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><App /></ThemeProvider></QueryClientProvider></BrowserRouter>
+    <BrowserRouter><QueryClientProvider client={queryClient}><AuthProvider><ThemeProvider theme={theme}><CssBaseline /><App /></ThemeProvider></AuthProvider></QueryClientProvider></BrowserRouter>
   </StrictMode>,
 )

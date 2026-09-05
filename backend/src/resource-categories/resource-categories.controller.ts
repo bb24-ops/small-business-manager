@@ -11,11 +11,14 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/roles.decorator.js';
 import { CreateResourceCategoryDto } from './dto/create-resource-category.dto.js';
 import { UpdateResourceCategoryDto } from './dto/update-resource-category.dto.js';
 import { ResourceCategoriesService } from './resource-categories.service.js';
 
 @ApiTags('resource-categories')
+@Roles(UserRole.ADMIN)
 @Controller('resource-categories')
 export class ResourceCategoriesController {
   constructor(private readonly service: ResourceCategoriesService) {}

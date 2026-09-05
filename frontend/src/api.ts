@@ -12,9 +12,16 @@ import type {
   TaskPayload,
   TaskPriority,
   TaskStatus,
+  AuthUser,
+  UserAccount,
+  UserRole,
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+const TOKEN_KEY = "sbm_access_token";
+export const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
+export const setAccessToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
+export const clearAccessToken = () => localStorage.removeItem(TOKEN_KEY);
 export class ApiError extends Error {
   readonly status: number;
   constructor(message: string, status: number) {
@@ -26,9 +33,17 @@ export class ApiError extends Error {
 async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+      ...options?.headers,
+    },
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAccessToken();
+      window.dispatchEvent(new Event("sbm:unauthorized"));
+    }
     const body = (await response.json().catch(() => null)) as {
       message?: string | string[];
     } | null;
@@ -46,6 +61,18 @@ async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => apiRequest<{ status: string; timestamp: string }>("/health"),
+  auth: {
+    login: (payload: { email: string; password: string }) =>
+      apiRequest<{ accessToken: string; user: AuthUser }>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+    me: () => apiRequest<AuthUser>("/auth/me"),
+  },
+  users: {
+    list: () => apiRequest<UserAccount[]>("/users"),
+    create: (payload: { email: string; password: string; role: UserRole; employeeId?: string }) =>
+      apiRequest<UserAccount>("/users", { method: "POST", body: JSON.stringify(payload) }),
+    update: (id: string, payload: { isActive?: boolean; password?: string }) =>
+      apiRequest<UserAccount>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  },
   dashboard: {
     stats: () => apiRequest<DashboardStats>("/dashboard/stats"),
   },

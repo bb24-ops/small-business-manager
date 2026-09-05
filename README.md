@@ -5,7 +5,7 @@ Početna struktura web aplikacije za upravljanje resursima i obavezama malih pre
 ## Tehnologije
 
 - Frontend: React, TypeScript, Vite i React Router
-- Backend: NestJS i TypeScript
+- Backend: NestJS i TypeScript, uz JWT autentifikaciju
 - Baza: MySQL 8.4 LTS kroz Docker Compose
 - ORM: Prisma
 - UI i serverski podaci: Material UI i TanStack Query
@@ -26,11 +26,12 @@ Pokretanje baze iz korena projekta:
 docker compose up -d
 ```
 
-Primena Prisma migracija i pokretanje backend-a:
+Primena Prisma migracija, kreiranje početnog administratora i pokretanje backend-a:
 
 ```powershell
 cd backend
 npm.cmd run prisma:deploy
+npm.cmd run prisma:seed
 npm.cmd run start:dev
 ```
 
@@ -106,9 +107,12 @@ npm.cmd run build
 - pretraga i filtriranje zadataka na ruti `/tasks`;
 - pregled broja i predstojećih zadataka na kontrolnoj tabli;
 - Swagger/OpenAPI dokumentacija;
+- prijavljivanje email adresom i lozinkom, uz osmočasovni JWT token;
+- bezbedno čuvanje lozinki pomoću bcrypt hashiranja;
+- administratorski i zaposleni korisnički nalozi;
+- administratorsko upravljanje korisničkim nalozima na ruti `/users`;
+- serverska kontrola pristupa i ograničavanje zaposlenog na njegove zadatke i rezervacije;
 - unit i end-to-end testovi.
-
-Autentifikacija, korisnički nalozi i ostali poslovni moduli još nisu implementirani.
 
 ## Glavne adrese
 
@@ -118,6 +122,8 @@ Autentifikacija, korisnički nalozi i ostali poslovni moduli još nisu implement
 - Zaposleni: `http://localhost:5174/employees`
 - Rezervacije: `http://localhost:5174/reservations`
 - Kalendar: `http://localhost:5174/calendar`
+- Prijavljivanje: `http://localhost:5174/login`
+- Korisnički nalozi: `http://localhost:5174/users`
 - Tasks API: `http://localhost:3001/api/tasks`
 - Employees API: `http://localhost:3001/api/employees`
 - Reservations API: `http://localhost:3001/api/reservations`

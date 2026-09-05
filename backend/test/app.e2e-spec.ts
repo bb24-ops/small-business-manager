@@ -4,11 +4,17 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
+import { JwtService } from '@nestjs/jwt';
+import { hash } from 'bcryptjs';
+import type { NextFunction, Request, Response } from 'express';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   const testPrefix = `e2e-${Date.now()}`;
+  const adminEmail = `${testPrefix}-admin@example.com`;
+  const adminPassword = 'TestAdmin123!';
+  let adminId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -25,6 +31,17 @@ describe('AppController (e2e)', () => {
       }),
     );
     prisma = app.get(PrismaService);
+    const admin = await prisma.user.create({
+      data: { email: adminEmail, passwordHash: await hash(adminPassword, 4), role: 'ADMIN' },
+    });
+    adminId = admin.id;
+    const token = await moduleFixture.get(JwtService).signAsync({
+      sub: admin.id, id: admin.id, email: admin.email, role: admin.role, employeeId: null,
+    });
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      if (!req.headers.authorization) req.headers.authorization = `Bearer ${token}`;
+      next();
+    });
     await app.init();
   });
 
@@ -36,6 +53,30 @@ describe('AppController (e2e)', () => {
         expect(body.status).toBe('ok');
         expect(body.timestamp).toBeTypeOf('string');
       });
+  });
+
+  it('logs in and rejects invalid credentials', async () => {
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email: adminEmail, password: 'pogresna-lozinka' }).expect(401);
+    const response = await request(app.getHttpServer()).post('/api/auth/login').send({ email: adminEmail, password: adminPassword }).expect(201);
+    expect(response.body.accessToken).toBeTypeOf('string');
+    expect(response.body.user.role).toBe('ADMIN');
+  });
+
+  it('restricts employee accounts to their own data', async () => {
+    const employee = await prisma.employee.create({
+      data: { firstName: 'Auth', lastName: 'Test', email: `${testPrefix}-auth-employee@example.com`, position: 'Tester' },
+    });
+    const employeePassword = 'Employee123!';
+    const account = await prisma.user.create({
+      data: { email: `${testPrefix}-account@example.com`, passwordHash: await hash(employeePassword, 4), role: 'EMPLOYEE', employeeId: employee.id },
+    });
+    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: account.email, password: employeePassword }).expect(201);
+    const authorization = `Bearer ${login.body.accessToken}`;
+    await request(app.getHttpServer()).get('/api/dashboard/stats').set('Authorization', authorization).expect(403);
+    const tasks = await request(app.getHttpServer()).get('/api/tasks').set('Authorization', authorization).expect(200);
+    expect(tasks.body).toEqual([]);
+    await prisma.user.delete({ where: { id: account.id } });
+    await prisma.employee.delete({ where: { id: employee.id } });
   });
 
   it('validates resource category input', () => {
@@ -314,6 +355,7 @@ describe('AppController (e2e)', () => {
     await prisma.resourceCategory.deleteMany({
       where: { name: { startsWith: testPrefix } },
     });
+    await prisma.user.deleteMany({ where: { id: adminId } });
     await app.close();
   });
 });

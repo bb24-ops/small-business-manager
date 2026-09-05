@@ -24,6 +24,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { taskStatusColors, taskStatusLabels } from "../task-options";
+import { useAuth } from "../auth";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("sr-Latn-RS", {
@@ -34,12 +35,15 @@ const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Došlo je do neočekivane greške.";
 
 export default function ReservationsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [resourceId, setResourceId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const resourcesQuery = useQuery({
     queryKey: ["resources"],
     queryFn: () => api.resources.list({}),
+    enabled: isAdmin,
   });
   const reservationsQuery = useQuery({
     queryKey: ["reservations", resourceId, from, to],
@@ -64,7 +68,7 @@ export default function ReservationsPage() {
           sx={{ gap: 2 }}
           className="filters"
         >
-          <FormControl size="small" sx={{ minWidth: 240 }}>
+          {isAdmin && <FormControl size="small" sx={{ minWidth: 240 }}>
             <InputLabel>Resurs</InputLabel>
             <Select
               label="Resurs"
@@ -78,7 +82,7 @@ export default function ReservationsPage() {
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </FormControl>}
           <TextField
             size="small"
             label="Od"

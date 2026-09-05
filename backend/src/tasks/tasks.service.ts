@@ -16,20 +16,21 @@ const taskInclude = {
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: TaskQueryDto) {
+  async findAll(query: TaskQueryDto, employeeId?: string) {
     await synchronizeTaskStatuses(this.prisma);
     const where: Prisma.TaskWhereInput = {
       status: query.status,
       priority: query.priority,
+      employeeId,
       ...(query.search ? { OR: [{ title: { contains: query.search } }, { description: { contains: query.search } }] } : {}),
     };
     return this.prisma.task.findMany({ where, include: taskInclude, orderBy: [{ status: 'asc' }, { dueAt: 'asc' }] });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, employeeId?: string) {
     await synchronizeTaskStatuses(this.prisma);
     const task = await this.prisma.task.findUnique({ where: { id }, include: taskInclude });
-    if (!task) throw new NotFoundException('Zadatak nije pronađen.');
+    if (!task || (employeeId && task.employeeId !== employeeId)) throw new NotFoundException('Zadatak nije pronađen.');
     return task;
   }
 
@@ -103,8 +104,8 @@ export class TasksService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  async complete(id: string) {
-    const existing = await this.findOne(id);
+  async complete(id: string, employeeId?: string) {
+    const existing = await this.findOne(id, employeeId);
     if (existing.status === TaskStatus.DONE) return existing;
     return this.prisma.task.update({
       where: { id },
