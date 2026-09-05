@@ -135,7 +135,7 @@ export interface ResourceUsagePoint {
 }
 export interface ResourceUsageStats {
   days: number;
-  direction: "past" | "future";
+  direction: "past" | "current-week" | "future";
   capacity: number;
   averageQuantity: number;
   peak: ResourceUsagePoint;

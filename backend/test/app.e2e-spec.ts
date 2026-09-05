@@ -118,6 +118,12 @@ describe('AppController (e2e)', () => {
       .expect(200);
     expect(futureUsageResponse.body.direction).toBe('future');
     expect(futureUsageResponse.body.points).toHaveLength(30);
+    const currentWeekResponse = await request(app.getHttpServer())
+      .get('/api/dashboard/resource-usage')
+      .query({ days: 7, direction: 'current-week' })
+      .expect(200);
+    expect(currentWeekResponse.body.direction).toBe('current-week');
+    expect(currentWeekResponse.body.points).toHaveLength(7);
     await request(app.getHttpServer())
       .get('/api/dashboard/resource-usage')
       .query({ days: 10 })

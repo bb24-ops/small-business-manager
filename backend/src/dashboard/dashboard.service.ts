@@ -152,13 +152,19 @@ export class DashboardService {
     };
   }
 
-  async getResourceUsage(days: number, direction: 'past' | 'future' = 'past') {
+  async getResourceUsage(days: number, direction: 'past' | 'current-week' | 'future' = 'past') {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const rangeStart = new Date(todayStart);
     if (direction === 'past') rangeStart.setDate(rangeStart.getDate() - days + 1);
-    const rangeEnd = new Date(direction === 'past' ? now : todayStart);
+    if (direction === 'current-week') {
+      const dayFromMonday = (rangeStart.getDay() + 6) % 7;
+      rangeStart.setDate(rangeStart.getDate() - dayFromMonday);
+      days = 7;
+    }
+    const rangeEnd = new Date(direction === 'past' ? now : rangeStart);
     if (direction === 'future') rangeEnd.setDate(rangeEnd.getDate() + days);
+    if (direction === 'current-week') rangeEnd.setDate(rangeEnd.getDate() + 7);
 
     const [reservations, capacity] = await Promise.all([
       this.prisma.reservation.findMany({

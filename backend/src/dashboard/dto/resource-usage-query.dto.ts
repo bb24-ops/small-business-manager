@@ -7,6 +7,6 @@ export class ResourceUsageQueryDto {
   days = 30;
 
   @IsOptional()
-  @IsIn(['past', 'future'], { message: 'Smer perioda mora biti past ili future.' })
-  direction: 'past' | 'future' = 'past';
+  @IsIn(['past', 'current-week', 'future'], { message: 'Smer perioda mora biti past, current-week ili future.' })
+  direction: 'past' | 'current-week' | 'future' = 'past';
 }
