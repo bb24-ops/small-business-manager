@@ -128,3 +128,15 @@ export interface DashboardStats {
   totalReservations: number;
   upcomingReservations: Reservation[];
 }
+
+export interface ResourceUsagePoint {
+  date: string;
+  peakQuantity: number;
+}
+export interface ResourceUsageStats {
+  days: number;
+  capacity: number;
+  averageQuantity: number;
+  peak: ResourceUsagePoint;
+  points: ResourceUsagePoint[];
+}

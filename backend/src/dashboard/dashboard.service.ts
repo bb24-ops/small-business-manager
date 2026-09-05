@@ -151,4 +151,46 @@ export class DashboardService {
       upcomingReservations,
     };
   }
+
+  async getResourceUsage(days: number) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const rangeStart = new Date(todayStart);
+    rangeStart.setDate(rangeStart.getDate() - days + 1);
+
+    const [reservations, capacity] = await Promise.all([
+      this.prisma.reservation.findMany({
+        where: { startsAt: { lt: now }, endsAt: { gt: rangeStart } },
+        select: { startsAt: true, endsAt: true, quantity: true },
+      }),
+      this.prisma.resource.aggregate({ _sum: { quantity: true } }),
+    ]);
+
+    const points = Array.from({ length: days }, (_, index) => {
+      const dayStart = new Date(rangeStart);
+      dayStart.setDate(dayStart.getDate() + index);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const analysisEnd = new Date(Math.min(dayEnd.getTime(), now.getTime()));
+      const events = reservations.flatMap((reservation) => {
+        const start = Math.max(reservation.startsAt.getTime(), dayStart.getTime());
+        const end = Math.min(reservation.endsAt.getTime(), analysisEnd.getTime());
+        return start < end
+          ? [{ at: start, change: reservation.quantity }, { at: end, change: -reservation.quantity }]
+          : [];
+      }).sort((left, right) => left.at - right.at || left.change - right.change);
+      let current = 0;
+      let peakQuantity = 0;
+      for (const event of events) {
+        current += event.change;
+        peakQuantity = Math.max(peakQuantity, current);
+      }
+      const date = [dayStart.getFullYear(), String(dayStart.getMonth() + 1).padStart(2, '0'), String(dayStart.getDate()).padStart(2, '0')].join('-');
+      return { date, peakQuantity };
+    });
+
+    const peak = points.reduce((best, point) => point.peakQuantity > best.peakQuantity ? point : best, points[0]);
+    const averageQuantity = Math.round((points.reduce((sum, point) => sum + point.peakQuantity, 0) / points.length) * 10) / 10;
+    return { days, capacity: capacity._sum.quantity ?? 0, averageQuantity, peak, points };
+  }
 }

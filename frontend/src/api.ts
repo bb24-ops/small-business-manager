@@ -15,6 +15,7 @@ import type {
   AuthUser,
   UserAccount,
   UserRole,
+  ResourceUsageStats,
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
@@ -75,6 +76,8 @@ export const api = {
   },
   dashboard: {
     stats: () => apiRequest<DashboardStats>("/dashboard/stats"),
+    resourceUsage: (days: 7 | 30 | 90) =>
+      apiRequest<ResourceUsageStats>(`/dashboard/resource-usage?days=${days}`),
   },
   categories: {
     list: () => apiRequest<ResourceCategory[]>("/resource-categories"),

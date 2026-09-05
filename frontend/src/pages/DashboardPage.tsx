@@ -21,7 +21,12 @@ import {
   TableHead,
   TableRow,
   Typography,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from "@mui/material";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { api } from "../api";
@@ -33,6 +38,7 @@ import {
   taskStatusLabels,
 } from "../task-options";
 import type { ResourceStatus } from "../types";
+import { ResourceUsageChart } from "../components/ResourceUsageChart";
 
 const statusCards: Array<{
   key: ResourceStatus;
@@ -48,12 +54,19 @@ const formatDate = (value: string) =>
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+const formatShortDate = (value: string) =>
+  new Intl.DateTimeFormat("sr-Latn-RS", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00Z`));
 
 export default function DashboardPage() {
+  const [usageDays, setUsageDays] = useState<7 | 30 | 90>(30);
   const navigate = useNavigate();
   const statsQuery = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: api.dashboard.stats,
+  });
+  const usageQuery = useQuery({
+    queryKey: ["dashboard-resource-usage", usageDays],
+    queryFn: () => api.dashboard.resourceUsage(usageDays),
   });
 
   if (statsQuery.isLoading)
@@ -160,6 +173,26 @@ export default function DashboardPage() {
           </Typography>
         </Paper>
       </Box>
+
+      <Paper className="dashboard-panel" elevation={0} sx={{ mb: 2.5 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", gap: 2, mb: 2 }}>
+          <Box>
+            <Typography variant="h6">Iskorišćenost resursa</Typography>
+            <Typography variant="body2" color="text.secondary">Najveći broj istovremeno angažovanih jedinica po danu</Typography>
+          </Box>
+          <FormControl size="small" sx={{ minWidth: 160 }}><InputLabel>Period</InputLabel><Select label="Period" value={usageDays} onChange={event => setUsageDays(Number(event.target.value) as 7 | 30 | 90)}><MenuItem value={7}>Poslednjih 7 dana</MenuItem><MenuItem value={30}>Poslednjih 30 dana</MenuItem><MenuItem value={90}>Poslednjih 90 dana</MenuItem></Select></FormControl>
+        </Stack>
+        {usageQuery.isLoading ? <Box sx={{ minHeight: 280, display: "grid", placeItems: "center" }}><CircularProgress /></Box>
+          : usageQuery.isError ? <Alert severity="error">Statistika iskorišćenosti trenutno nije dostupna.</Alert>
+          : usageQuery.data ? <>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mb: 1 }}>
+              <Chip color="secondary" label={`Vrh: ${usageQuery.data.peak.peakQuantity} jedinica · ${formatShortDate(usageQuery.data.peak.date)}`} />
+              <Chip variant="outlined" label={`Dnevni prosek: ${usageQuery.data.averageQuantity}`} />
+              <Chip variant="outlined" label={`Ukupan kapacitet: ${usageQuery.data.capacity}`} />
+            </Stack>
+            <ResourceUsageChart points={usageQuery.data.points} />
+          </> : null}
+      </Paper>
 
       <Box sx={{ mb: 2.5 }}>
         <Paper className="dashboard-panel" elevation={0}>

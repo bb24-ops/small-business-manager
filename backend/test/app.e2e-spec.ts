@@ -103,6 +103,19 @@ describe('AppController (e2e)', () => {
     expect(response.body.activeEmployees).toBeTypeOf('number');
     expect(response.body.totalReservations).toBeTypeOf('number');
     expect(response.body.upcomingReservations).toBeInstanceOf(Array);
+
+    const usageResponse = await request(app.getHttpServer())
+      .get('/api/dashboard/resource-usage')
+      .query({ days: 7 })
+      .expect(200);
+    expect(usageResponse.body.days).toBe(7);
+    expect(usageResponse.body.points).toHaveLength(7);
+    expect(usageResponse.body.peak.peakQuantity).toBeTypeOf('number');
+    expect(usageResponse.body.averageQuantity).toBeTypeOf('number');
+    await request(app.getHttpServer())
+      .get('/api/dashboard/resource-usage')
+      .query({ days: 10 })
+      .expect(400);
   });
 
   it('creates, filters, updates and deletes a task', async () => {
